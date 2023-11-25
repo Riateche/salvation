@@ -188,7 +188,10 @@ impl Window {
                     size_hints_x.preferred,
                     size_hints_y.preferred,
                 ))
-                .with_min_inner_size(PhysicalSize::new(size_hints_x.min, size_hints_y.min));
+                .with_min_inner_size(PhysicalSize::new(
+                    size_hints_x.preferred,
+                    size_hints_y.preferred,
+                ));
         }
         let winit_window = with_window_target(|window_target| inner.build(window_target).unwrap());
         let softbuffer_context = unsafe { softbuffer::Context::new(&winit_window) }.unwrap();

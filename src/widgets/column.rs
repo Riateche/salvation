@@ -5,7 +5,7 @@ use crate::{
     event::LayoutEvent,
     layout::{
         grid::{self, GridAxisOptions, GridOptions},
-        Alignment, LayoutItemOptions, SizeHintMode,
+        Alignment, LayoutItemOptions,
     },
 };
 
@@ -63,17 +63,13 @@ impl Column {
     fn grid_options(&self) -> GridOptions {
         GridOptions {
             x: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: 0,
-                preferred_padding: 0,
-                preferred_spacing: 0,
+                padding: 0,
+                spacing: 0,
                 border_collapse: 0,
             },
             y: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: SPACING,
-                preferred_padding: 0,
-                preferred_spacing: SPACING,
+                padding: 0,
+                spacing: SPACING,
                 border_collapse: 0,
             },
         }
@@ -96,9 +92,9 @@ impl Widget for Column {
         Ok(())
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_x(&mut self.common.children, &options, mode)
+        grid::size_hint_x(&mut self.common.children, &options)
     }
     fn is_size_hint_x_fixed(&mut self) -> bool {
         let options = self.grid_options();
@@ -108,8 +104,8 @@ impl Widget for Column {
         let options = self.grid_options();
         grid::is_size_hint_y_fixed(&mut self.common.children, &options)
     }
-    fn size_hint_y(&mut self, size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_y(&mut self.common.children, &options, size_x, mode)
+        grid::size_hint_y(&mut self.common.children, &options, size_x)
     }
 }

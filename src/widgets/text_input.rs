@@ -22,7 +22,6 @@ use crate::{
         KeyboardInputEvent, LayoutEvent, MountEvent, MouseInputEvent, MouseMoveEvent, UnmountEvent,
         WidgetScopeChangeEvent, WindowFocusChangeEvent,
     },
-    layout::SizeHintMode,
     shortcut::standard_shortcuts,
     style::text_input::{ComputedVariantStyle, TextInputState},
     system::{add_interval, report_error, send_window_request, with_system, ReportError},
@@ -597,22 +596,14 @@ impl Widget for TextInput {
         Some(node)
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let style = &self.common.style().text_input;
-        let r = match mode {
-            SizeHintMode::Min => style.min_width,
-            SizeHintMode::Preferred => style.preferred_width,
-        };
-        Ok(r.get())
+        Ok(style.preferred_width.get())
     }
 
-    fn size_hint_y(&mut self, _size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
         let style = &self.common.style().text_input;
-        let padding = match mode {
-            SizeHintMode::Min => style.min_padding_with_border,
-            SizeHintMode::Preferred => style.preferred_padding_with_border,
-        };
-        Ok(self.editor.size().y + 2 * padding.y)
+        Ok(self.editor.size().y + 2 * style.preferred_padding_with_border.y)
     }
 
     fn is_size_hint_x_fixed(&mut self) -> bool {

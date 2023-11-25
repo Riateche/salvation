@@ -5,7 +5,7 @@ use crate::{
     event::{Event, LayoutEvent},
     layout::{
         grid::{self, GridAxisOptions, GridOptions},
-        LayoutItemOptions, SizeHintMode,
+        LayoutItemOptions,
     },
     types::{Axis, Point, Rect, Size},
 };
@@ -312,17 +312,13 @@ impl ScrollBar {
         let border_collapse = self.common.style().scroll_bar.border_collapse.get();
         GridOptions {
             x: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: 0,
-                preferred_padding: 0,
-                preferred_spacing: 0,
+                padding: 0,
+                spacing: 0,
                 border_collapse,
             },
             y: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: 0,
-                preferred_padding: 0,
-                preferred_spacing: 0,
+                padding: 0,
+                spacing: 0,
                 border_collapse,
             },
         }
@@ -383,13 +379,13 @@ impl Widget for ScrollBar {
             .common_mut()
             .children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_x(SizeHintMode::Preferred);
+            .cached_size_hint_x();
         let grip_size_hint_y = self.common.children[INDEX_PAGER]
             .widget
             .common_mut()
             .children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_y(grip_size_hint_x, SizeHintMode::Preferred);
+            .cached_size_hint_y(grip_size_hint_x);
 
         let (size_along_axis, grip_min_size_along_axis, pager_size_along_axis) = match self.axis {
             Axis::X => (size.x, grip_size_hint_x, pager_rect.size.x),
@@ -420,9 +416,9 @@ impl Widget for ScrollBar {
         Ok(())
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_x(&mut self.common.children, &options, mode)
+        grid::size_hint_x(&mut self.common.children, &options)
     }
     fn is_size_hint_x_fixed(&mut self) -> bool {
         self.axis == Axis::Y
@@ -430,9 +426,9 @@ impl Widget for ScrollBar {
     fn is_size_hint_y_fixed(&mut self) -> bool {
         self.axis == Axis::X
     }
-    fn size_hint_y(&mut self, size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_y(&mut self.common.children, &options, size_x, mode)
+        grid::size_hint_y(&mut self.common.children, &options, size_x)
     }
 }
 
@@ -466,19 +462,19 @@ impl Widget for Pager {
         &mut self.common
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let grip_hint = self.common.children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_x(mode);
+            .cached_size_hint_x();
         match self.axis {
             Axis::X => Ok(grip_hint * PAGER_SIZE_HINT_MULTIPLIER),
             Axis::Y => Ok(grip_hint),
         }
     }
-    fn size_hint_y(&mut self, size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
         let grip_hint = self.common.children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_y(size_x, mode);
+            .cached_size_hint_y(size_x);
         match self.axis {
             Axis::X => Ok(grip_hint),
             Axis::Y => Ok(grip_hint * PAGER_SIZE_HINT_MULTIPLIER),

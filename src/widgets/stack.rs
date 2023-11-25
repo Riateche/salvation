@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::collections::HashMap;
 
-use crate::{event::LayoutEvent, layout::SizeHintMode, system::ReportError, types::Rect};
+use crate::{event::LayoutEvent, system::ReportError, types::Rect};
 
 use super::{RawWidgetId, Widget, WidgetCommon};
 
@@ -42,7 +42,7 @@ impl Widget for Stack {
         Ok(())
     }
 
-    fn size_hint_x(&mut self, _mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let max = self
             .common
             .children
@@ -54,7 +54,7 @@ impl Widget for Stack {
         Ok(max)
     }
 
-    fn size_hint_y(&mut self, _size_x: i32, _mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
         let max = self
             .common
             .children

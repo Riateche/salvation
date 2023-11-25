@@ -10,7 +10,6 @@ use crate::{
     widgets::{Child, WidgetExt},
 };
 
-use super::SizeHintMode;
 use anyhow::Result;
 use itertools::Itertools;
 use log::warn;
@@ -21,18 +20,12 @@ pub struct GridOptions {
 }
 
 pub struct GridAxisOptions {
-    pub min_padding: i32,
-    pub min_spacing: i32,
-    pub preferred_padding: i32,
-    pub preferred_spacing: i32,
+    pub padding: i32,
+    pub spacing: i32,
     pub border_collapse: i32,
 }
 
-fn size_hint(
-    items: &[(RangeInclusive<i32>, i32)],
-    options: &GridAxisOptions,
-    mode: SizeHintMode,
-) -> Result<i32> {
+fn size_hint(items: &[(RangeInclusive<i32>, i32)], options: &GridAxisOptions) -> Result<i32> {
     let mut max_per_column = BTreeMap::new();
     let mut spanned = Vec::new();
     for (pos, hint) in items {
@@ -58,16 +51,13 @@ fn size_hint(
             }
         }
     }
-    let (padding, spacing) = match mode {
-        SizeHintMode::Min => (options.min_padding, options.min_spacing),
-        SizeHintMode::Preferred => (options.preferred_padding, options.preferred_spacing),
-    };
     Ok(max_per_column.values().sum::<i32>()
-        + 2 * padding
-        + max_per_column.len().saturating_sub(1) as i32 * (spacing - options.border_collapse))
+        + 2 * options.padding
+        + max_per_column.len().saturating_sub(1) as i32
+            * (options.spacing - options.border_collapse))
 }
 
-pub fn size_hint_x(items: &mut [Child], options: &GridOptions, mode: SizeHintMode) -> Result<i32> {
+pub fn size_hint_x(items: &mut [Child], options: &GridOptions) -> Result<i32> {
     // TODO: exclude hidden widgets
     let item_data = items
         .iter_mut()
@@ -75,19 +65,14 @@ pub fn size_hint_x(items: &mut [Child], options: &GridOptions, mode: SizeHintMod
         .map(|item| {
             (
                 item.options.x.pos_in_grid.clone().unwrap(),
-                item.widget.cached_size_hint_x(mode),
+                item.widget.cached_size_hint_x(),
             )
         })
         .collect_vec();
-    size_hint(&item_data, &options.x, mode)
+    size_hint(&item_data, &options.x)
 }
 
-pub fn size_hint_y(
-    items: &mut [Child],
-    options: &GridOptions,
-    size_x: i32,
-    mode: SizeHintMode,
-) -> Result<i32> {
+pub fn size_hint_y(items: &mut [Child], options: &GridOptions, size_x: i32) -> Result<i32> {
     let x_layout = x_layout(items, &options.x, size_x)?;
     let mut item_data = Vec::new();
     for (index, item) in items.iter_mut().enumerate() {
@@ -98,10 +83,10 @@ pub fn size_hint_y(
             continue;
         };
         let pos = item.options.y.pos_in_grid.clone().unwrap();
-        let hints = item.widget.cached_size_hint_y(*item_size_x, mode);
+        let hints = item.widget.cached_size_hint_y(*item_size_x);
         item_data.push((pos, hints));
     }
-    size_hint(&item_data, &options.y, mode)
+    size_hint(&item_data, &options.y)
 }
 
 // TODO: skip hidden, check item options
@@ -138,7 +123,6 @@ fn x_layout(items: &mut [Child], options: &GridAxisOptions, size_x: i32) -> Resu
         let pos = *pos.start();
         let hints = item.widget.cached_size_hints_x();
         let column_hints = hints_per_column.entry(pos).or_insert(hints);
-        column_hints.min = max(column_hints.min, hints.min);
         column_hints.preferred = max(column_hints.preferred, hints.preferred);
         column_hints.is_fixed = column_hints.is_fixed && hints.is_fixed;
     }
@@ -164,7 +148,7 @@ fn x_layout(items: &mut [Child], options: &GridAxisOptions, size_x: i32) -> Resu
             continue;
         };
         let child_size = if item.widget.cached_size_hint_x_fixed() {
-            let hint = item.widget.cached_size_hint_x(SizeHintMode::Preferred);
+            let hint = item.widget.cached_size_hint_x();
             min(hint, *column_size)
         } else {
             *column_size
@@ -202,7 +186,6 @@ pub fn layout(
         let pos = *pos.start();
         let hints = item.widget.cached_size_hints_y(*item_size_x);
         let row_hints = hints_per_row.entry(pos).or_insert(hints);
-        row_hints.min = max(row_hints.min, hints.min);
         row_hints.preferred = max(row_hints.preferred, hints.preferred);
         row_hints.is_fixed = row_hints.is_fixed && hints.is_fixed;
         // TODO: deduplicate
@@ -240,11 +223,7 @@ pub fn layout(
             continue;
         };
         let size_y = if item.widget.cached_size_hint_y_fixed() {
-            min(
-                *row_size,
-                item.widget
-                    .cached_size_hint_y(*size_x, SizeHintMode::Preferred),
-            )
+            min(*row_size, item.widget.cached_size_hint_y(*size_x))
         } else {
             *row_size
         };

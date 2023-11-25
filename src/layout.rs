@@ -10,7 +10,6 @@ pub mod grid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SizeHints {
     // TODO: PhysicalPixels
-    pub min: i32,
     pub preferred: i32,
     pub is_fixed: bool,
 }
@@ -26,12 +25,6 @@ pub struct SizeHints {
 // }
 
 pub const FALLBACK_SIZE_HINT: i32 = 48;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SizeHintMode {
-    Min,
-    Preferred,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct LayoutItemOptions {
@@ -111,8 +104,8 @@ pub(crate) fn solve_layout(
 ) -> SolveLayoutOutput {
     let mut output = SolveLayoutOutput {
         sizes: Vec::new(),
-        padding: options.preferred_padding,
-        spacing: options.preferred_spacing - options.border_collapse,
+        padding: options.padding,
+        spacing: options.spacing - options.border_collapse,
     };
     if items.is_empty() {
         return output;
@@ -120,33 +113,13 @@ pub(crate) fn solve_layout(
     total = max(
         0,
         total
-            - 2 * options.preferred_padding
-            - items.len().saturating_sub(1) as i32
-                * (options.preferred_spacing - options.border_collapse),
+            - 2 * options.padding
+            - items.len().saturating_sub(1) as i32 * (options.spacing - options.border_collapse),
     );
     let total_preferred: i32 = items.iter().map(|item| item.size_hints.preferred).sum();
     if total_preferred == total {
         output.sizes = items.iter().map(|item| item.size_hints.preferred).collect();
         return output;
-    } else if total_preferred > total {
-        let total_min: i32 = items.iter().map(|item| item.size_hints.min).sum();
-        let factor = if total_preferred == total_min {
-            0.0
-        } else {
-            (total - total_min) as f32 / (total_preferred - total_min) as f32
-        };
-        let mut remaining = total;
-        for item in items {
-            let item_size = item.size_hints.min
-                + ((item.size_hints.preferred - item.size_hints.min) as f32 * factor).round()
-                    as i32;
-            let item_size = min(item_size, remaining);
-            output.sizes.push(item_size);
-            remaining -= item_size;
-            if remaining == 0 {
-                break;
-            }
-        }
     } else if total_preferred < total {
         let num_flexible = items
             .iter()

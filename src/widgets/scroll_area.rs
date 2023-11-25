@@ -8,7 +8,7 @@ use crate::{
     event::LayoutEvent,
     layout::{
         grid::{self, GridAxisOptions, GridOptions},
-        LayoutItemOptions, SizeHintMode,
+        LayoutItemOptions,
     },
     types::{Axis, Rect},
 };
@@ -88,17 +88,13 @@ impl ScrollArea {
     fn grid_options(&self) -> GridOptions {
         GridOptions {
             x: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: 0,
-                preferred_padding: 0,
-                preferred_spacing: 0,
+                padding: 0,
+                spacing: 0,
                 border_collapse: 0,
             },
             y: GridAxisOptions {
-                min_padding: 0,
-                min_spacing: 0,
-                preferred_padding: 0,
-                preferred_spacing: 0,
+                padding: 0,
+                spacing: 0,
                 border_collapse: 0,
             },
         }
@@ -128,13 +124,13 @@ impl ScrollArea {
                 .common_mut()
                 .children[0]
                 .widget
-                .cached_size_hint_x(SizeHintMode::Preferred);
+                .cached_size_hint_x();
             let content_size_y = self.common.children[INDEX_VIEWPORT]
                 .widget
                 .common_mut()
                 .children[0]
                 .widget
-                .cached_size_hint_y(content_size_x, SizeHintMode::Preferred);
+                .cached_size_hint_y(content_size_x);
             let content_rect = Rect::from_xywh(-value_x, -value_y, content_size_x, content_size_y);
             self.common.children[INDEX_VIEWPORT]
                 .widget
@@ -200,9 +196,9 @@ impl Widget for ScrollArea {
         self.relayout()
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_x(&mut self.common.children, &options, mode)
+        grid::size_hint_x(&mut self.common.children, &options)
     }
     fn is_size_hint_x_fixed(&mut self) -> bool {
         let options = self.grid_options();
@@ -212,9 +208,9 @@ impl Widget for ScrollArea {
         let options = self.grid_options();
         grid::is_size_hint_y_fixed(&mut self.common.children, &options)
     }
-    fn size_hint_y(&mut self, size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
         let options = self.grid_options();
-        grid::size_hint_y(&mut self.common.children, &options, size_x, mode)
+        grid::size_hint_y(&mut self.common.children, &options, size_x)
     }
 }
 
@@ -240,10 +236,10 @@ impl Widget for Viewport {
         &mut self.common
     }
 
-    fn size_hint_x(&mut self, _mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         Ok(0)
     }
-    fn size_hint_y(&mut self, _size_x: i32, _mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
         Ok(0)
     }
     fn is_size_hint_x_fixed(&mut self) -> bool {

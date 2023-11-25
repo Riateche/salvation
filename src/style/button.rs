@@ -97,7 +97,6 @@ pub struct ComputedVariantStyle {
 
 #[derive(Debug, Clone)]
 pub struct ComputedStyle {
-    pub min_padding_with_border: Point,
     pub preferred_padding_with_border: Point,
     pub font_metrics: cosmic_text::Metrics,
     pub variants: HashMap<ButtonState, ComputedVariantStyle>,
@@ -115,14 +114,9 @@ impl ComputedStyle {
             element.classes.insert(class);
         }
 
-        let element_min = element.clone().with_pseudo_class(MyPseudoClass::Min);
-
         let properties = style.find_rules(|s| element.matches(s));
         let font = convert_font(&properties, Some(root_font))?;
         let preferred_padding = convert_padding(&properties, scale, font.font_size)?;
-
-        let min_properties = style.find_rules(|s| element_min.matches(s));
-        let min_padding = convert_padding(&min_properties, scale, font.font_size)?;
 
         let variants = ButtonState::all()
             .into_iter()
@@ -174,8 +168,6 @@ impl ComputedStyle {
         // );
 
         Ok(Self {
-            min_padding_with_border: min_padding
-                + Point::new(border_width.get(), border_width.get()),
             preferred_padding_with_border: preferred_padding
                 + Point::new(border_width.get(), border_width.get()),
             font_metrics: font.to_metrics(scale),

@@ -15,7 +15,6 @@ use crate::{
         AccessibleActionEvent, FocusReason, MouseEnterEvent, MouseInputEvent, MouseLeaveEvent,
         WidgetScopeChangeEvent,
     },
-    layout::SizeHintMode,
     style::button::{ButtonState, ComputedStyle, ComputedVariantStyle},
     system::send_window_request,
     text_editor::TextEditor,
@@ -249,12 +248,8 @@ impl Widget for Button {
         Some(node)
     }
 
-    fn size_hint_x(&mut self, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<i32> {
         let style = &self.common.style().button;
-        let padding = match mode {
-            SizeHintMode::Min => style.min_padding_with_border,
-            SizeHintMode::Preferred => style.preferred_padding_with_border,
-        };
 
         // TODO: support text with icon
         let content_size = if self.text_visible {
@@ -265,16 +260,12 @@ impl Widget for Button {
             0
         };
 
-        Ok(content_size + 2 * padding.x)
+        Ok(content_size + 2 * style.preferred_padding_with_border.x)
     }
 
-    fn size_hint_y(&mut self, _size_x: i32, mode: SizeHintMode) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
         // TODO: use size_x, handle multiple lines
         let style = &self.common.style().button;
-        let padding = match mode {
-            SizeHintMode::Min => style.min_padding_with_border,
-            SizeHintMode::Preferred => style.preferred_padding_with_border,
-        };
 
         // TODO: support text with icon
         let content_size = if self.text_visible {
@@ -285,7 +276,7 @@ impl Widget for Button {
             0
         };
 
-        Ok(content_size + 2 * padding.x)
+        Ok(content_size + 2 * style.preferred_padding_with_border.y)
     }
 
     fn handle_widget_scope_change(&mut self, _event: WidgetScopeChangeEvent) -> Result<()> {
