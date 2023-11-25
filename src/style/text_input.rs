@@ -15,8 +15,8 @@ use crate::{
 
 use super::{
     computed::{ComputedBackground, ComputedBorderStyle},
-    css::{convert_font, convert_padding, convert_width, Element, MyPseudoClass},
-    defaults::{DEFAULT_MIN_WIDTH_EM, DEFAULT_PREFERRED_WIDTH_EM},
+    css::{convert_font, convert_min_width, convert_padding, Element, MyPseudoClass},
+    defaults::DEFAULT_PREFERRED_WIDTH_EM,
     ElementState, FontStyle, Style,
 };
 
@@ -77,9 +77,7 @@ impl ElementState for TextInputState {
 
 #[derive(Debug, Clone)]
 pub struct ComputedStyle {
-    pub min_padding_with_border: Point,
     pub preferred_padding_with_border: Point,
-    pub min_width: PhysicalPixels,
     pub preferred_width: PhysicalPixels,
     pub font_metrics: cosmic_text::Metrics,
     pub variants: HashMap<TextInputState, ComputedVariantStyle>,
@@ -88,18 +86,12 @@ pub struct ComputedStyle {
 impl ComputedStyle {
     pub fn new(style: &Style, scale: f32, root_font: &FontStyle) -> Result<ComputedStyle> {
         let element = Element::new("text-input");
-        let element_min = element.clone().with_pseudo_class(MyPseudoClass::Min);
 
         let properties = style.find_rules(|s| element.matches(s));
         let font = convert_font(&properties, Some(root_font))?;
         let preferred_padding = convert_padding(&properties, scale, font.font_size)?;
-        let preferred_width = convert_width(&properties, scale, font.font_size)?
+        let preferred_width = convert_min_width(&properties, scale, font.font_size)?
             .unwrap_or_else(|| (font.font_size * DEFAULT_PREFERRED_WIDTH_EM).to_physical(scale));
-
-        let min_properties = style.find_rules(|s| element_min.matches(s));
-        let min_padding = convert_padding(&min_properties, scale, font.font_size)?;
-        let min_width = convert_width(&min_properties, scale, font.font_size)?
-            .unwrap_or_else(|| (font.font_size * DEFAULT_MIN_WIDTH_EM).to_physical(scale));
 
         // TODO: variant-specific selection css rules?
         let selection_properties = style.find_rules(is_selection);
@@ -145,11 +137,8 @@ impl ComputedStyle {
             .width;
 
         Ok(Self {
-            min_padding_with_border: min_padding
-                + Point::new(border_width.get(), border_width.get()),
             preferred_padding_with_border: preferred_padding
                 + Point::new(border_width.get(), border_width.get()),
-            min_width,
             preferred_width,
             font_metrics: font.to_metrics(scale),
             variants,

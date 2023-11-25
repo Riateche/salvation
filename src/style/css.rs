@@ -201,6 +201,7 @@ pub fn convert_padding(
     ))
 }
 
+#[allow(dead_code)]
 pub fn convert_width(
     properties: &[&Property<'static>],
     scale: f32,
@@ -210,6 +211,27 @@ pub fn convert_width(
     for property in properties {
         match property {
             Property::Width(value) => match value {
+                Size::Auto => {}
+                Size::LengthPercentage(value) => {
+                    width = Some(convert_dimension_percentage(value, None, Some(font_size))?);
+                }
+                _ => warn!("unsupported width value: {value:?}"),
+            },
+            _ => {}
+        }
+    }
+    Ok(width.map(|width| width.to_physical(scale)))
+}
+
+pub fn convert_min_width(
+    properties: &[&Property<'static>],
+    scale: f32,
+    font_size: LogicalPixels,
+) -> Result<Option<PhysicalPixels>> {
+    let mut width = None;
+    for property in properties {
+        match property {
+            Property::MinWidth(value) => match value {
                 Size::Auto => {}
                 Size::LengthPercentage(value) => {
                     width = Some(convert_dimension_percentage(value, None, Some(font_size))?);

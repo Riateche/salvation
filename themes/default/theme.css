@@ -17,10 +17,6 @@ text-input {
     padding: 3px;
     width: 10em;
 }
-text-input:min {
-    padding: 0px 1px;
-    width: 2em;
-}
 text-input:focus {
     border-color: #6464ff;
 }
@@ -30,9 +26,6 @@ button {
     border-radius: 2px;
     padding: 4px;
     background: linear-gradient(#fefefe 0%, #eeeeee 100%);
-}
-button:min {
-    padding: 0px 1px;
 }
 button:disabled {
     color: #bfbfbf;
