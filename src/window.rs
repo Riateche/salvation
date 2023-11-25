@@ -182,16 +182,10 @@ impl Window {
             // TODO: propagate style without mounting?
             let size_hints_x = widget.cached_size_hints_x();
             // TODO: adjust size_x for screen size
-            let size_hints_y = widget.cached_size_hints_y(size_hints_x.preferred);
+            let size_hints_y = widget.cached_size_hints_y(size_hints_x.value);
             inner = inner
-                .with_inner_size(PhysicalSize::new(
-                    size_hints_x.preferred,
-                    size_hints_y.preferred,
-                ))
-                .with_min_inner_size(PhysicalSize::new(
-                    size_hints_x.preferred,
-                    size_hints_y.preferred,
-                ));
+                .with_inner_size(PhysicalSize::new(size_hints_x.value, size_hints_y.value))
+                .with_min_inner_size(PhysicalSize::new(size_hints_x.value, size_hints_y.value));
         }
         let winit_window = with_window_target(|window_target| inner.build(window_target).unwrap());
         let softbuffer_context = unsafe { softbuffer::Context::new(&winit_window) }.unwrap();

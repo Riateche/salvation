@@ -16,7 +16,7 @@ use crate::{
 use super::{
     computed::{ComputedBackground, ComputedBorderStyle},
     css::{convert_font, convert_min_width, convert_padding, Element, MyPseudoClass},
-    defaults::DEFAULT_PREFERRED_WIDTH_EM,
+    defaults::DEFAULT_INPUT_MIN_WIDTH_EM,
     ElementState, FontStyle, Style,
 };
 
@@ -77,8 +77,8 @@ impl ElementState for TextInputState {
 
 #[derive(Debug, Clone)]
 pub struct ComputedStyle {
-    pub preferred_padding_with_border: Point,
-    pub preferred_width: PhysicalPixels,
+    pub padding_with_border: Point,
+    pub min_width: PhysicalPixels,
     pub font_metrics: cosmic_text::Metrics,
     pub variants: HashMap<TextInputState, ComputedVariantStyle>,
 }
@@ -89,9 +89,9 @@ impl ComputedStyle {
 
         let properties = style.find_rules(|s| element.matches(s));
         let font = convert_font(&properties, Some(root_font))?;
-        let preferred_padding = convert_padding(&properties, scale, font.font_size)?;
-        let preferred_width = convert_min_width(&properties, scale, font.font_size)?
-            .unwrap_or_else(|| (font.font_size * DEFAULT_PREFERRED_WIDTH_EM).to_physical(scale));
+        let padding = convert_padding(&properties, scale, font.font_size)?;
+        let min_width = convert_min_width(&properties, scale, font.font_size)?
+            .unwrap_or_else(|| (font.font_size * DEFAULT_INPUT_MIN_WIDTH_EM).to_physical(scale));
 
         // TODO: variant-specific selection css rules?
         let selection_properties = style.find_rules(is_selection);
@@ -137,9 +137,8 @@ impl ComputedStyle {
             .width;
 
         Ok(Self {
-            preferred_padding_with_border: preferred_padding
-                + Point::new(border_width.get(), border_width.get()),
-            preferred_width,
+            padding_with_border: padding + Point::new(border_width.get(), border_width.get()),
+            min_width,
             font_metrics: font.to_metrics(scale),
             variants,
         })

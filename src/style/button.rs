@@ -97,7 +97,7 @@ pub struct ComputedVariantStyle {
 
 #[derive(Debug, Clone)]
 pub struct ComputedStyle {
-    pub preferred_padding_with_border: Point,
+    pub padding_with_border: Point,
     pub font_metrics: cosmic_text::Metrics,
     pub variants: HashMap<ButtonState, ComputedVariantStyle>,
 }
@@ -116,7 +116,7 @@ impl ComputedStyle {
 
         let properties = style.find_rules(|s| element.matches(s));
         let font = convert_font(&properties, Some(root_font))?;
-        let preferred_padding = convert_padding(&properties, scale, font.font_size)?;
+        let padding = convert_padding(&properties, scale, font.font_size)?;
 
         let variants = ButtonState::all()
             .into_iter()
@@ -168,8 +168,7 @@ impl ComputedStyle {
         // );
 
         Ok(Self {
-            preferred_padding_with_border: preferred_padding
-                + Point::new(border_width.get(), border_width.get()),
+            padding_with_border: padding + Point::new(border_width.get(), border_width.get()),
             font_metrics: font.to_metrics(scale),
             variants,
         })

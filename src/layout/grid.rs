@@ -123,7 +123,7 @@ fn x_layout(items: &mut [Child], options: &GridAxisOptions, size_x: i32) -> Resu
         let pos = *pos.start();
         let hints = item.widget.cached_size_hints_x();
         let column_hints = hints_per_column.entry(pos).or_insert(hints);
-        column_hints.preferred = max(column_hints.preferred, hints.preferred);
+        column_hints.value = max(column_hints.value, hints.value);
         column_hints.is_fixed = column_hints.is_fixed && hints.is_fixed;
     }
     let layout_items = hints_per_column
@@ -186,7 +186,7 @@ pub fn layout(
         let pos = *pos.start();
         let hints = item.widget.cached_size_hints_y(*item_size_x);
         let row_hints = hints_per_row.entry(pos).or_insert(hints);
-        row_hints.preferred = max(row_hints.preferred, hints.preferred);
+        row_hints.value = max(row_hints.value, hints.value);
         row_hints.is_fixed = row_hints.is_fixed && hints.is_fixed;
         // TODO: deduplicate
     }

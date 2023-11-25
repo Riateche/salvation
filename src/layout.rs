@@ -10,7 +10,7 @@ pub mod grid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SizeHints {
     // TODO: PhysicalPixels
-    pub preferred: i32,
+    pub value: i32,
     pub is_fixed: bool,
 }
 
@@ -95,11 +95,10 @@ pub(crate) struct SolveLayoutOutput {
     pub(crate) spacing: i32,
 }
 
-// TODO: chose min/preferred spacing and padding
 // TODO: support spanned items
 pub(crate) fn solve_layout(
     items: &[LayoutItem],
-    mut total: i32,
+    mut total_available: i32,
     options: &GridAxisOptions,
 ) -> SolveLayoutOutput {
     let mut output = SolveLayoutOutput {
@@ -110,28 +109,28 @@ pub(crate) fn solve_layout(
     if items.is_empty() {
         return output;
     }
-    total = max(
+    total_available = max(
         0,
-        total
+        total_available
             - 2 * options.padding
             - items.len().saturating_sub(1) as i32 * (options.spacing - options.border_collapse),
     );
-    let total_preferred: i32 = items.iter().map(|item| item.size_hints.preferred).sum();
-    if total_preferred == total {
-        output.sizes = items.iter().map(|item| item.size_hints.preferred).collect();
+    let total_min: i32 = items.iter().map(|item| item.size_hints.value).sum();
+    if total_min == total_available {
+        output.sizes = items.iter().map(|item| item.size_hints.value).collect();
         return output;
-    } else if total_preferred < total {
+    } else if total_min < total_available {
         let num_flexible = items
             .iter()
             .filter(|item| !item.size_hints.is_fixed)
             .count() as i32;
-        let mut remaining = total;
-        let mut extras = fare_split(num_flexible, max(0, total - total_preferred));
+        let mut remaining = total_available;
+        let mut extras = fare_split(num_flexible, max(0, total_available - total_min));
         for item in items {
             let item_size = if item.size_hints.is_fixed {
-                item.size_hints.preferred
+                item.size_hints.value
             } else {
-                item.size_hints.preferred + extras.pop().unwrap()
+                item.size_hints.value + extras.pop().unwrap()
             };
             let item_size = min(item_size, remaining);
             output.sizes.push(item_size);

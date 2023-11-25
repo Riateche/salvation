@@ -235,14 +235,11 @@ impl TextInput {
             let offset_y = max(0, rect_in_window.size.y - self.editor.size().y) / 2;
             self.editor_viewport_rect = Rect {
                 top_left: Point {
-                    x: style.preferred_padding_with_border.x,
+                    x: style.padding_with_border.x,
                     y: offset_y,
                 },
                 size: Size {
-                    x: max(
-                        0,
-                        rect_in_window.size.x - 2 * style.preferred_padding_with_border.x,
-                    ),
+                    x: max(0, rect_in_window.size.x - 2 * style.padding_with_border.x),
                     y: min(rect_in_window.size.y, self.editor.size().y),
                 },
             };
@@ -598,12 +595,12 @@ impl Widget for TextInput {
 
     fn size_hint_x(&mut self) -> Result<i32> {
         let style = &self.common.style().text_input;
-        Ok(style.preferred_width.get())
+        Ok(style.min_width.get())
     }
 
     fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
         let style = &self.common.style().text_input;
-        Ok(self.editor.size().y + 2 * style.preferred_padding_with_border.y)
+        Ok(self.editor.size().y + 2 * style.padding_with_border.y)
     }
 
     fn is_size_hint_x_fixed(&mut self) -> bool {

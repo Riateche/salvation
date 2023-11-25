@@ -260,7 +260,7 @@ impl Widget for Button {
             0
         };
 
-        Ok(content_size + 2 * style.preferred_padding_with_border.x)
+        Ok(content_size + 2 * style.padding_with_border.x)
     }
 
     fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
@@ -276,7 +276,7 @@ impl Widget for Button {
             0
         };
 
-        Ok(content_size + 2 * style.preferred_padding_with_border.y)
+        Ok(content_size + 2 * style.padding_with_border.y)
     }
 
     fn handle_widget_scope_change(&mut self, _event: WidgetScopeChangeEvent) -> Result<()> {

@@ -44,6 +44,6 @@ pub fn selected_text_background() -> Color {
     Color::from_rgba8(100, 100, 150, 255)
 }
 
-pub const DEFAULT_PREFERRED_WIDTH_EM: f32 = 10.0;
+pub const DEFAULT_INPUT_MIN_WIDTH_EM: f32 = 10.0;
 
 pub const DEFAULT_LINE_HEIGHT: f32 = 1.2;

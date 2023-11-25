@@ -930,7 +930,7 @@ impl<W: Widget + ?Sized> WidgetExt for W {
     }
     fn cached_size_hints_x(&mut self) -> SizeHints {
         SizeHints {
-            preferred: self.cached_size_hint_x(),
+            value: self.cached_size_hint_x(),
             is_fixed: self.cached_size_hint_x_fixed(),
         }
     }
@@ -949,7 +949,7 @@ impl<W: Widget + ?Sized> WidgetExt for W {
 
     fn cached_size_hints_y(&mut self, size_x: i32) -> SizeHints {
         SizeHints {
-            preferred: self.cached_size_hint_y(size_x),
+            value: self.cached_size_hint_y(size_x),
             is_fixed: self.cached_size_hint_y_fixed(),
         }
     }
