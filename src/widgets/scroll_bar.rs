@@ -5,7 +5,7 @@ use crate::{
     event::{Event, LayoutEvent},
     layout::{
         grid::{self, GridAxisOptions, GridOptions},
-        LayoutItemOptions,
+        LayoutItemOptions, SizeHint,
     },
     types::{Axis, Point, Rect, Size},
 };
@@ -379,13 +379,15 @@ impl Widget for ScrollBar {
             .common_mut()
             .children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_x();
+            .cached_size_hint_x()
+            .value;
         let grip_size_hint_y = self.common.children[INDEX_PAGER]
             .widget
             .common_mut()
             .children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_y(grip_size_hint_x);
+            .cached_size_hint_y(grip_size_hint_x)
+            .value;
 
         let (size_along_axis, grip_min_size_along_axis, pager_size_along_axis) = match self.axis {
             Axis::X => (size.x, grip_size_hint_x, pager_rect.size.x),
@@ -416,19 +418,15 @@ impl Widget for ScrollBar {
         Ok(())
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
         let options = self.grid_options();
-        grid::size_hint_x(&mut self.common.children, &options)
+        let value = grid::size_hint_x(&mut self.common.children, &options)?.value;
+        Ok(SizeHint::new(value, self.axis == Axis::Y))
     }
-    fn is_size_hint_x_fixed(&mut self) -> bool {
-        self.axis == Axis::Y
-    }
-    fn is_size_hint_y_fixed(&mut self) -> bool {
-        self.axis == Axis::X
-    }
-    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<SizeHint> {
         let options = self.grid_options();
-        grid::size_hint_y(&mut self.common.children, &options, size_x)
+        let value = grid::size_hint_y(&mut self.common.children, &options, size_x)?.value;
+        Ok(SizeHint::new(value, self.axis == Axis::X))
     }
 }
 
@@ -462,28 +460,27 @@ impl Widget for Pager {
         &mut self.common
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
+    // TODO: it should not be expanding on opposite axis
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
         let grip_hint = self.common.children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_x();
-        match self.axis {
-            Axis::X => Ok(grip_hint * PAGER_SIZE_HINT_MULTIPLIER),
-            Axis::Y => Ok(grip_hint),
-        }
+            .cached_size_hint_x()
+            .value;
+        let value = match self.axis {
+            Axis::X => grip_hint * PAGER_SIZE_HINT_MULTIPLIER,
+            Axis::Y => grip_hint,
+        };
+        Ok(SizeHint::new_expanding(value))
     }
-    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<SizeHint> {
         let grip_hint = self.common.children[INDEX_GRIP_IN_PAGER]
             .widget
-            .cached_size_hint_y(size_x);
-        match self.axis {
-            Axis::X => Ok(grip_hint),
-            Axis::Y => Ok(grip_hint * PAGER_SIZE_HINT_MULTIPLIER),
-        }
-    }
-    fn is_size_hint_x_fixed(&mut self) -> bool {
-        false
-    }
-    fn is_size_hint_y_fixed(&mut self) -> bool {
-        false
+            .cached_size_hint_y(size_x)
+            .value;
+        let value = match self.axis {
+            Axis::X => grip_hint,
+            Axis::Y => grip_hint * PAGER_SIZE_HINT_MULTIPLIER,
+        };
+        Ok(SizeHint::new_expanding(value))
     }
 }

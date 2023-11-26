@@ -15,6 +15,7 @@ use crate::{
         AccessibleActionEvent, FocusReason, MouseEnterEvent, MouseInputEvent, MouseLeaveEvent,
         WidgetScopeChangeEvent,
     },
+    layout::SizeHint,
     style::button::{ButtonState, ComputedStyle, ComputedVariantStyle},
     system::send_window_request,
     text_editor::TextEditor,
@@ -248,7 +249,7 @@ impl Widget for Button {
         Some(node)
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
         let style = &self.common.style().button;
 
         // TODO: support text with icon
@@ -259,11 +260,11 @@ impl Widget for Button {
         } else {
             0
         };
-
-        Ok(content_size + 2 * style.padding_with_border.x)
+        let value = content_size + 2 * style.padding_with_border.x;
+        Ok(SizeHint::new_fixed(value))
     }
 
-    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<SizeHint> {
         // TODO: use size_x, handle multiple lines
         let style = &self.common.style().button;
 
@@ -276,7 +277,8 @@ impl Widget for Button {
             0
         };
 
-        Ok(content_size + 2 * style.padding_with_border.y)
+        let value = content_size + 2 * style.padding_with_border.y;
+        Ok(SizeHint::new_fixed(value))
     }
 
     fn handle_widget_scope_change(&mut self, _event: WidgetScopeChangeEvent) -> Result<()> {

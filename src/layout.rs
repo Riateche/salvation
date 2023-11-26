@@ -8,23 +8,40 @@ use self::grid::GridAxisOptions;
 pub mod grid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SizeHints {
+pub struct SizeHint {
     // TODO: PhysicalPixels
     pub value: i32,
     pub is_fixed: bool,
 }
 
-// impl SizeHint {
-//     pub fn new_fallback() -> Self {
-//         SizeHint {
-//             min: 48,
-//             preferred: 48,
-//             is_fixed: true,
-//         }
-//     }
-// }
+const FALLBACK_SIZE_HINT: i32 = 48;
 
-pub const FALLBACK_SIZE_HINT: i32 = 48;
+impl SizeHint {
+    pub fn new(value: i32, is_fixed: bool) -> Self {
+        Self { value, is_fixed }
+    }
+
+    pub fn new_fixed(value: i32) -> Self {
+        Self {
+            value,
+            is_fixed: true,
+        }
+    }
+
+    pub fn new_expanding(value: i32) -> Self {
+        Self {
+            value,
+            is_fixed: false,
+        }
+    }
+
+    pub fn new_fallback() -> Self {
+        SizeHint {
+            value: FALLBACK_SIZE_HINT,
+            is_fixed: true,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct LayoutItemOptions {
@@ -85,7 +102,7 @@ pub(crate) fn fare_split(count: i32, total: i32) -> Vec<i32> {
 }
 
 pub(crate) struct LayoutItem {
-    pub(crate) size_hints: SizeHints,
+    pub(crate) size_hints: SizeHint,
     // TODO: params
 }
 

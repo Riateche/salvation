@@ -3,7 +3,7 @@ use std::cmp::max;
 
 use crate::{
     event::LayoutEvent,
-    layout::LayoutItemOptions,
+    layout::{LayoutItemOptions, SizeHint},
     types::{Point, Rect, Size},
 };
 
@@ -34,20 +34,28 @@ impl Widget for PaddingBox {
         &mut self.common
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
         if let Some(content) = self.common.children.get_mut(0) {
-            Ok(content.widget.cached_size_hint_x() + PADDING.x * 2)
+            let content_hint = content.widget.cached_size_hint_x();
+            Ok(SizeHint::new(
+                content_hint.value + PADDING.x * 2,
+                content_hint.is_fixed,
+            ))
         } else {
-            Ok(0)
+            Ok(SizeHint::new(0, true))
         }
     }
 
-    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<SizeHint> {
         let child_size_x = max(0, size_x - 2 * PADDING.x);
         if let Some(content) = self.common.children.get_mut(0) {
-            Ok(content.widget.cached_size_hint_y(child_size_x) + PADDING.y * 2)
+            let content_hint = content.widget.cached_size_hint_y(child_size_x);
+            Ok(SizeHint::new(
+                content_hint.value + PADDING.y * 2,
+                content_hint.is_fixed,
+            ))
         } else {
-            Ok(0)
+            Ok(SizeHint::new(0, true))
         }
     }
 

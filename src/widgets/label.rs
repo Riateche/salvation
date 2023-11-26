@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::Result;
 use cosmic_text::Attrs;
 
-use crate::{draw::DrawEvent, text_editor::TextEditor, types::Point};
+use crate::{draw::DrawEvent, layout::SizeHint, text_editor::TextEditor, types::Point};
 
 use super::{Widget, WidgetCommon};
 
@@ -42,12 +42,14 @@ impl Widget for Label {
         &mut self.common
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
-        Ok(self.editor.size().x)
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
+        let value = self.editor.size().x;
+        Ok(SizeHint::new_fixed(value))
     }
 
-    fn size_hint_y(&mut self, _size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, _size_x: i32) -> Result<SizeHint> {
         // TODO: use size_x, handle multiple lines
-        Ok(self.editor.size().y)
+        let value = self.editor.size().y;
+        Ok(SizeHint::new_fixed(value))
     }
 }

@@ -5,7 +5,7 @@ use crate::{
     event::LayoutEvent,
     layout::{
         grid::{self, GridAxisOptions, GridOptions},
-        Alignment, LayoutItemOptions,
+        Alignment, LayoutItemOptions, SizeHint,
     },
 };
 
@@ -92,19 +92,11 @@ impl Widget for Column {
         Ok(())
     }
 
-    fn size_hint_x(&mut self) -> Result<i32> {
+    fn size_hint_x(&mut self) -> Result<SizeHint> {
         let options = self.grid_options();
         grid::size_hint_x(&mut self.common.children, &options)
     }
-    fn is_size_hint_x_fixed(&mut self) -> bool {
-        let options = self.grid_options();
-        grid::is_size_hint_x_fixed(&mut self.common.children, &options)
-    }
-    fn is_size_hint_y_fixed(&mut self) -> bool {
-        let options = self.grid_options();
-        grid::is_size_hint_y_fixed(&mut self.common.children, &options)
-    }
-    fn size_hint_y(&mut self, size_x: i32) -> Result<i32> {
+    fn size_hint_y(&mut self, size_x: i32) -> Result<SizeHint> {
         let options = self.grid_options();
         grid::size_hint_y(&mut self.common.children, &options, size_x)
     }

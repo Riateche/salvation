@@ -22,7 +22,7 @@ use crate::{
         LayoutEvent, MountEvent, MouseEnterEvent, MouseInputEvent, MouseLeaveEvent, MouseMoveEvent,
         UnmountEvent, WidgetScopeChangeEvent, WindowFocusChangeEvent,
     },
-    layout::{LayoutItemOptions, SizeHints, FALLBACK_SIZE_HINT},
+    layout::{LayoutItemOptions, SizeHint},
     style::{computed::ComputedStyle, Style},
     system::{address, register_address, unregister_address, with_system, ReportError},
     types::{Rect, Size},
@@ -115,11 +115,9 @@ pub struct WidgetCommon {
     pub children: Vec<Child>,
     pub current_layout_event: Option<LayoutEvent>,
 
-    pub size_hint_x_cache: Option<i32>,
+    pub size_hint_x_cache: Option<SizeHint>,
     // TODO: limit count
-    pub size_hint_y_cache: HashMap<i32, i32>,
-    pub size_hint_x_fixed_cache: Option<bool>,
-    pub size_hint_y_fixed_cache: Option<bool>,
+    pub size_hint_y_cache: HashMap<i32, SizeHint>,
 
     pub pending_accessible_update: bool,
 
@@ -162,8 +160,6 @@ impl WidgetCommon {
             children: Vec::new(),
             size_hint_x_cache: None,
             size_hint_y_cache: HashMap::new(),
-            size_hint_x_fixed_cache: None,
-            size_hint_y_fixed_cache: None,
             pending_accessible_update: false,
             parent_scope: WidgetScope::default(),
 
@@ -413,8 +409,6 @@ impl WidgetCommon {
     fn clear_size_hint_cache(&mut self) {
         self.size_hint_x_cache = None;
         self.size_hint_y_cache.clear();
-        self.size_hint_x_fixed_cache = None;
-        self.size_hint_y_fixed_cache = None;
     }
 
     pub fn mount_point_or_err(&self) -> Result<&MountPoint> {
@@ -620,14 +614,8 @@ pub trait Widget: Downcast {
             Event::WidgetScopeChange(e) => self.handle_widget_scope_change(e).map(|()| true),
         }
     }
-    fn size_hint_x(&mut self) -> Result<i32>;
-    fn size_hint_y(&mut self, size_x: i32) -> Result<i32>;
-    fn is_size_hint_x_fixed(&mut self) -> bool {
-        true
-    }
-    fn is_size_hint_y_fixed(&mut self) -> bool {
-        true
-    }
+    fn size_hint_x(&mut self) -> Result<SizeHint>;
+    fn size_hint_y(&mut self, size_x: i32) -> Result<SizeHint>;
 
     // TODO: result?
     fn accessible_node(&mut self) -> Option<accesskit::NodeBuilder> {
@@ -664,12 +652,8 @@ pub trait WidgetExt {
 
     fn dispatch(&mut self, event: Event) -> bool;
     fn update_accessible(&mut self);
-    fn cached_size_hint_x(&mut self) -> i32;
-    fn cached_size_hints_x(&mut self) -> SizeHints;
-    fn cached_size_hint_y(&mut self, size_x: i32) -> i32;
-    fn cached_size_hints_y(&mut self, size_x: i32) -> SizeHints;
-    fn cached_size_hint_x_fixed(&mut self) -> bool;
-    fn cached_size_hint_y_fixed(&mut self) -> bool;
+    fn cached_size_hint_x(&mut self) -> SizeHint;
+    fn cached_size_hint_y(&mut self, size_x: i32) -> SizeHint;
 
     // TODO: private
     fn set_parent_scope(&mut self, scope: WidgetScope);
@@ -916,59 +900,27 @@ impl<W: Widget + ?Sized> WidgetExt for W {
         self.common_mut().pending_accessible_update = false;
     }
 
-    fn cached_size_hint_x(&mut self) -> i32 {
+    fn cached_size_hint_x(&mut self) -> SizeHint {
         if let Some(cached) = self.common().size_hint_x_cache {
             cached
         } else {
             let r = self
                 .size_hint_x()
                 .or_report_err()
-                .unwrap_or(FALLBACK_SIZE_HINT);
+                .unwrap_or_else(SizeHint::new_fallback);
             self.common_mut().size_hint_x_cache = Some(r);
             r
         }
     }
-    fn cached_size_hints_x(&mut self) -> SizeHints {
-        SizeHints {
-            value: self.cached_size_hint_x(),
-            is_fixed: self.cached_size_hint_x_fixed(),
-        }
-    }
-    fn cached_size_hint_y(&mut self, size_x: i32) -> i32 {
+    fn cached_size_hint_y(&mut self, size_x: i32) -> SizeHint {
         if let Some(cached) = self.common().size_hint_y_cache.get(&(size_x)) {
             *cached
         } else {
             let r = self
                 .size_hint_y(size_x)
                 .or_report_err()
-                .unwrap_or(FALLBACK_SIZE_HINT);
+                .unwrap_or_else(SizeHint::new_fallback);
             self.common_mut().size_hint_y_cache.insert(size_x, r);
-            r
-        }
-    }
-
-    fn cached_size_hints_y(&mut self, size_x: i32) -> SizeHints {
-        SizeHints {
-            value: self.cached_size_hint_y(size_x),
-            is_fixed: self.cached_size_hint_y_fixed(),
-        }
-    }
-
-    fn cached_size_hint_x_fixed(&mut self) -> bool {
-        if let Some(cached) = self.common().size_hint_x_fixed_cache {
-            cached
-        } else {
-            let r = self.is_size_hint_x_fixed();
-            self.common_mut().size_hint_x_fixed_cache = Some(r);
-            r
-        }
-    }
-    fn cached_size_hint_y_fixed(&mut self) -> bool {
-        if let Some(cached) = self.common().size_hint_y_fixed_cache {
-            cached
-        } else {
-            let r = self.is_size_hint_y_fixed();
-            self.common_mut().size_hint_y_fixed_cache = Some(r);
             r
         }
     }

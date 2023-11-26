@@ -180,12 +180,12 @@ impl Window {
     fn new(mut inner: winit::window::WindowBuilder, mut widget: Option<Box<dyn Widget>>) -> Self {
         if let Some(widget) = &mut widget {
             // TODO: propagate style without mounting?
-            let size_hints_x = widget.cached_size_hints_x();
+            let size_hint_x = widget.cached_size_hint_x();
             // TODO: adjust size_x for screen size
-            let size_hints_y = widget.cached_size_hints_y(size_hints_x.value);
+            let size_hint_y = widget.cached_size_hint_y(size_hint_x.value);
             inner = inner
-                .with_inner_size(PhysicalSize::new(size_hints_x.value, size_hints_y.value))
-                .with_min_inner_size(PhysicalSize::new(size_hints_x.value, size_hints_y.value));
+                .with_inner_size(PhysicalSize::new(size_hint_x.value, size_hint_y.value))
+                .with_min_inner_size(PhysicalSize::new(size_hint_x.value, size_hint_y.value));
         }
         let winit_window = with_window_target(|window_target| inner.build(window_target).unwrap());
         let softbuffer_context = unsafe { softbuffer::Context::new(&winit_window) }.unwrap();
