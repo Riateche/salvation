@@ -8,6 +8,7 @@ use {
     },
     crate::{
         style::defaults,
+        system::ReportError,
         types::{LogicalPixels, LpxSuffix, PhysicalPixels, Point},
     },
     anyhow::{bail, Context, Result},
@@ -160,6 +161,7 @@ pub fn convert_font(properties: &[&Property<'static>], root: Option<&FontStyle>)
     }
 }
 
+// TODO: support zoom for all widgets?
 pub fn convert_zoom(properties: &[&Property<'static>]) -> f32 {
     let mut zoom = 1.0;
     for property in properties {
@@ -276,28 +278,38 @@ pub fn convert_spacing(
     properties: &[&Property<'static>],
     scale: f32,
     font_size: LogicalPixels,
-) -> Result<Point> {
+) -> Point {
     let mut x = None;
     let mut y = None;
     for property in properties {
         match property {
             Property::Gap(value) => {
-                x = Some(convert_single_spacing(&value.column, font_size)?);
-                y = Some(convert_single_spacing(&value.row, font_size)?);
+                if let Some(value) =
+                    convert_single_spacing(&value.column, font_size).or_report_err()
+                {
+                    x = Some(value);
+                }
+                if let Some(value) = convert_single_spacing(&value.row, font_size).or_report_err() {
+                    y = Some(value);
+                }
             }
             Property::ColumnGap(value) => {
-                x = Some(convert_single_spacing(value, font_size)?);
+                if let Some(value) = convert_single_spacing(value, font_size).or_report_err() {
+                    x = Some(value);
+                }
             }
             Property::RowGap(value) => {
-                y = Some(convert_single_spacing(value, font_size)?);
+                if let Some(value) = convert_single_spacing(value, font_size).or_report_err() {
+                    y = Some(value);
+                }
             }
             _ => {}
         }
     }
-    Ok(Point::new(
+    Point::new(
         x.unwrap_or_default().to_physical(scale),
         y.unwrap_or_default().to_physical(scale),
-    ))
+    )
 }
 
 pub fn convert_width(
@@ -457,17 +469,18 @@ fn convert_linear_gradient(value: &LinearGradient) -> Result<ComputedLinearGradi
     })
 }
 
-pub fn convert_background_color(properties: &[&Property<'static>]) -> Result<Option<Color>> {
+pub fn convert_background_color(properties: &[&Property<'static>]) -> Option<Color> {
     let bg = convert_background(properties);
     if let Some(bg) = bg {
         match bg {
-            ComputedBackground::Solid { color } => Ok(Some(color)),
+            ComputedBackground::Solid { color } => Some(color),
             ComputedBackground::LinearGradient(_) => {
-                bail!("only background color is supported in this context")
+                warn!("only background color is supported in this context");
+                None
             }
         }
     } else {
-        Ok(None)
+        None
     }
 }
 
@@ -715,6 +728,20 @@ pub fn is_root(selector: &Selector) -> bool {
         .is_some_and(|items| items.len() == 1 && matches!(items[0], Component::Root))
 }
 
+pub fn is_root_min(selector: &Selector) -> bool {
+    selector_items(selector).is_some_and(|items| {
+        items.len() == 2
+            && matches!(items[0], Component::Root)
+            && if let Component::NonTSPseudoClass(selector::PseudoClass::Custom { name }) =
+                &items[1]
+            {
+                *name == "min"
+            } else {
+                false
+            }
+    })
+}
+
 pub fn is_selection(selector: &Selector) -> bool {
     selector_items(selector).is_some_and(|items| {
         items.len() == 1
@@ -732,6 +759,7 @@ pub enum PseudoClass {
     Active,
     Enabled,
     Disabled,
+    // TODO: add more relevant classes
     Custom(CowArcStr<'static>),
 }
 
@@ -751,14 +779,14 @@ impl PseudoClass {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Element {
-    tag: &'static str,
+    tag: String,
     // TODO: small vec?
     classes: Vec<Cow<'static, str>>,
     pseudo_classes: Vec<PseudoClass>,
 }
 
 impl Element {
-    pub fn new(tag: &'static str) -> Self {
+    pub fn new(tag: String) -> Self {
         Self {
             tag,
             classes: Vec::new(),
@@ -848,6 +876,10 @@ impl Element {
             }
         }
         true
+    }
+
+    pub fn tag(&self) -> &str {
+        &self.tag
     }
 }
 

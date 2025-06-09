@@ -1,5 +1,5 @@
 use {
-    super::{Widget, WidgetCommon, WidgetCommonTyped, WidgetExt, WidgetGeometry},
+    super::{Widget, WidgetCommonTyped, WidgetExt, WidgetGeometry},
     crate::{
         event::LayoutEvent,
         impl_widget_common,

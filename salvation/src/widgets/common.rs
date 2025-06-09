@@ -4,20 +4,18 @@ use {
         callback::{widget_callback, Callback},
         event::Event,
         key::Key,
-        layout::{
-            grid::{GridAxisOptions, GridOptions},
-            Alignment, LayoutItemOptions, SizeHints,
-        },
+        layout::{LayoutItemOptions, SizeHints},
         shortcut::{Shortcut, ShortcutId, ShortcutScope},
         style::{
-            computed::{CommonComputedStyle, ComputedElementStyle, ComputedStyle},
+            computed::CommonComputedStyle,
             css::{Element, PseudoClass},
+            get_style,
         },
         system::{
             register_address, request_children_update, unregister_address, with_system,
-            ChildrenUpdateState,
+            ChildrenUpdateState, ReportError,
         },
-        types::{PhysicalPixels, Point, PpxSuffix, Rect, Size},
+        types::{PhysicalPixels, Point, Rect, Size},
         widgets::WidgetExt,
         window::{Window, WindowId},
     },
@@ -32,6 +30,7 @@ use {
         ops::{Deref, DerefMut},
         rc::Rc,
     },
+    stringcase::kebab_case,
     winit::window::CursorIcon,
 };
 
@@ -40,7 +39,7 @@ pub struct WidgetCreationContext {
     pub parent_id: Option<RawWidgetId>,
     pub address: WidgetAddress,
     pub window: Option<Window>,
-    pub parent_style: ComputedStyle,
+    pub parent_scale: f32,
     pub is_parent_enabled: bool,
     pub is_window_root: bool,
 }
@@ -157,7 +156,6 @@ auto_bitflags! {
         mouse_over,
         accessible,
         registered_as_focusable,
-        no_padding,
         has_declare_children_override,
     }
 }
@@ -175,7 +173,8 @@ pub struct WidgetCommon {
     pub address: WidgetAddress,
     pub window: Option<Window>,
 
-    pub parent_style: ComputedStyle,
+    pub parent_scale: f32,
+    pub self_scale: Option<f32>,
     pub is_self_visible: bool,
 
     pub is_window_root: bool,
@@ -194,15 +193,11 @@ pub struct WidgetCommon {
     pub size_hint_y_cache: HashMap<PhysicalPixels, SizeHints>,
     pub is_accessible: bool,
 
-    pub self_style: Option<ComputedStyle>,
-
     pub is_registered_as_focusable: bool,
     // TODO: multiple filters?
     // TODO: accept/reject event from filter; option to run filter after on_event
     #[derivative(Debug = "ignore")]
     pub event_filter: Option<Box<EventFilterFn>>,
-    pub grid_options: Option<GridOptions>,
-    pub no_padding: bool,
 
     pub shortcuts: Vec<Shortcut>,
     pub style_element: Element,
@@ -243,9 +238,9 @@ impl WidgetCommon {
         register_address(id, ctx.address.clone());
 
         let type_name = T::type_name();
-        let style_element =
-            Element::new(last_path_part(type_name)).with_pseudo_class(PseudoClass::Enabled);
-        let common_style = ctx.parent_style.get_common(&style_element);
+        let style_element = Element::new(kebab_case(last_path_part(type_name)))
+            .with_pseudo_class(PseudoClass::Enabled);
+        let common_style = get_style(&style_element, ctx.parent_scale);
         let mut common = Self {
             id,
             type_name,
@@ -261,8 +256,8 @@ impl WidgetCommon {
             parent_id: ctx.parent_id,
             address: ctx.address,
             window: ctx.window,
-            parent_style: ctx.parent_style,
-            self_style: None,
+            parent_scale: ctx.parent_scale,
+            self_scale: None,
             is_self_visible: true,
             is_mouse_over: false,
             geometry: None,
@@ -275,8 +270,6 @@ impl WidgetCommon {
             is_registered_as_focusable: false,
             event_filter: None,
             is_window_root: ctx.is_window_root,
-            grid_options: None,
-            no_padding: false,
             shortcuts: Vec::new(),
             style_element,
             common_style,
@@ -322,64 +315,6 @@ impl WidgetCommon {
 
     pub fn window_id(&self) -> Option<WindowId> {
         self.window.as_ref().map(|w| w.id())
-    }
-
-    pub fn set_grid_options(&mut self, options: Option<GridOptions>) -> &mut Self {
-        if self.grid_options == options {
-            return self;
-        }
-        self.grid_options = options;
-        self.size_hint_changed();
-        self
-    }
-
-    pub fn set_no_padding(&mut self, value: bool) -> &mut Self {
-        if self.no_padding == value {
-            return self;
-        }
-        self.no_padding = value;
-        self.size_hint_changed();
-        self
-    }
-
-    pub fn grid_options(&self) -> GridOptions {
-        self.grid_options.clone().unwrap_or_else(|| {
-            let style = self.style();
-            GridOptions {
-                x: GridAxisOptions {
-                    min_padding: if self.no_padding {
-                        0.ppx()
-                    } else {
-                        style.0.grid.min_padding.x()
-                    },
-                    min_spacing: style.0.grid.min_spacing.x(),
-                    preferred_padding: if self.no_padding {
-                        0.ppx()
-                    } else {
-                        style.0.grid.preferred_padding.x()
-                    },
-                    preferred_spacing: style.0.grid.preferred_spacing.x(),
-                    border_collapse: 0.ppx(),
-                    alignment: Alignment::Start,
-                },
-                y: GridAxisOptions {
-                    min_padding: if self.no_padding {
-                        0.ppx()
-                    } else {
-                        style.0.grid.min_padding.y()
-                    },
-                    min_spacing: style.0.grid.min_spacing.y(),
-                    preferred_padding: if self.no_padding {
-                        0.ppx()
-                    } else {
-                        style.0.grid.preferred_padding.y()
-                    },
-                    preferred_spacing: style.0.grid.preferred_spacing.y(),
-                    border_collapse: 0.ppx(),
-                    alignment: Alignment::Start,
-                },
-            }
-        })
     }
 
     pub fn is_self_visible(&self) -> bool {
@@ -456,10 +391,6 @@ impl WidgetCommon {
         self.window.as_ref().is_some_and(|w| w.is_focused())
     }
 
-    pub fn style(&self) -> &ComputedStyle {
-        self.self_style.as_ref().unwrap_or(&self.parent_style)
-    }
-
     pub fn new_creation_context(
         &self,
         new_id: RawWidgetId,
@@ -471,7 +402,7 @@ impl WidgetCommon {
             address: self.address.clone().join(key, new_id),
             is_window_root: root_of_window.is_some(),
             window: root_of_window.or_else(|| self.window.clone()),
-            parent_style: self.style().clone(),
+            parent_scale: self.scale(),
             is_parent_enabled: self.is_enabled(),
         }
     }
@@ -779,11 +710,21 @@ impl WidgetCommon {
             Event::StyleChange(_) => {
                 self.refresh_common_style();
             }
+            Event::Draw(event) => {
+                let Some(size) = self.size_or_err().or_report_err() else {
+                    return false;
+                };
+
+                event.stroke_and_fill_rounded_rect(
+                    Rect::from_pos_size(Point::default(), size),
+                    &self.common_style.border,
+                    self.common_style.background.as_ref(),
+                );
+            }
             Event::MouseEnter(_)
             | Event::KeyboardInput(_)
             | Event::InputMethod(_)
             | Event::Layout(_)
-            | Event::Draw(_)
             | Event::AccessibilityAction(_) => {}
         }
         false
@@ -891,7 +832,7 @@ impl WidgetCommon {
     // TODO: remove_shortcut
 
     pub fn refresh_common_style(&mut self) {
-        self.common_style = self.style().get_common(&self.style_element);
+        self.common_style = get_style(&self.style_element, self.scale());
         self.size_hint_changed();
         self.update();
     }
@@ -900,8 +841,13 @@ impl WidgetCommon {
         &self.style_element
     }
 
-    pub fn specific_style<T: ComputedElementStyle>(&self) -> Rc<T> {
-        self.style().get(&self.style_element)
+    pub fn scale(&self) -> f32 {
+        self.self_scale.unwrap_or(self.parent_scale)
+    }
+
+    pub(crate) fn set_scale(&mut self, scale: Option<f32>) -> &mut Self {
+        self.self_scale = scale;
+        self
     }
 
     pub fn set_accessible(&mut self, value: bool) {

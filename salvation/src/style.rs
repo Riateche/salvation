@@ -1,14 +1,24 @@
 use {
     crate::{
-        style::css::replace_vars,
+        style::{
+            computed::ComputedElementStyle,
+            css::{
+                convert_background_color, convert_font, convert_main_color, is_root, replace_vars,
+                Element,
+            },
+        },
+        system::with_system,
         types::{LogicalPixels, Point},
     },
     anyhow::{anyhow, bail, Context, Result},
     lightningcss::{
         properties::Property, rules::CssRule, selector::Selector, stylesheet::StyleSheet,
     },
+    log::warn,
+    ordered_float::OrderedFloat,
     serde::{Deserialize, Serialize},
     std::{
+        any::{Any, TypeId},
         borrow::Cow,
         collections::HashMap,
         fmt::Debug,
@@ -16,7 +26,7 @@ use {
         path::{Path, PathBuf},
         rc::Rc,
     },
-    tiny_skia::Pixmap,
+    tiny_skia::{Color, Pixmap},
 };
 
 pub mod button;
@@ -91,6 +101,8 @@ pub enum StyleSource {
 pub struct Style {
     pub css: StyleSheet<'static, 'static>,
     pub source: StyleSource,
+
+    cache: HashMap<(Element, OrderedFloat<f32>, TypeId), Box<dyn Any>>,
 }
 
 fn load_css(css: &str) -> Result<StyleSheet<'static, 'static>> {
@@ -117,6 +129,7 @@ impl Style {
             source: StyleSource::Bundle {
                 files: files.into_iter().collect(),
             },
+            cache: HashMap::new(),
         })
     }
 
@@ -131,7 +144,12 @@ impl Style {
                     .context("invalid css path (couldn't get parent)")?
                     .into(),
             },
+            cache: HashMap::new(),
         })
+    }
+
+    pub fn find_rules_for_element(&self, element: &Element) -> Vec<&Property<'static>> {
+        self.find_rules(|selector| element.matches(selector))
     }
 
     pub fn find_rules(
@@ -156,6 +174,25 @@ impl Style {
         // Use stable sort because later statements should take priority.
         results.sort_by_key(|(important, specificity, _dec)| (*important, *specificity));
         results.into_iter().map(|(_, _, dec)| dec).collect()
+    }
+
+    // TODO: cache?
+    pub fn root_font_style(&self) -> FontStyle {
+        let rules = self.find_rules(is_root);
+        convert_font(&rules, None)
+    }
+
+    pub fn root_background_color(&self) -> Color {
+        let rules = self.find_rules(is_root);
+        convert_background_color(&rules).unwrap_or_else(defaults::background_color)
+    }
+
+    pub fn root_color(&self) -> Color {
+        let rules = self.find_rules(is_root);
+        convert_main_color(&rules).unwrap_or_else(|| {
+            warn!("missing 'color' property for :root in style");
+            defaults::text_color()
+        })
     }
 
     pub fn load_resource(&self, path: &str) -> Result<Cow<'static, [u8]>> {
@@ -193,4 +230,23 @@ impl Style {
         );
         Ok(Rc::new(pixmap))
     }
+
+    pub fn get<T: ComputedElementStyle>(&mut self, element: &Element, scale: f32) -> Rc<T> {
+        let type_id = TypeId::of::<T>();
+        let key = (element.clone(), OrderedFloat(scale), type_id);
+        if let Some(data) = self.cache.get(&key) {
+            return data
+                .downcast_ref::<Rc<T>>()
+                .expect("style cache type mismatch")
+                .clone();
+        }
+        let style = Rc::new(T::new(self, element, scale));
+        let style_clone = style.clone();
+        self.cache.insert(key, Box::new(style));
+        style_clone
+    }
+}
+
+pub fn get_style<T: ComputedElementStyle>(element: &Element, scale: f32) -> Rc<T> {
+    with_system(|system| system.style.get(element, scale))
 }

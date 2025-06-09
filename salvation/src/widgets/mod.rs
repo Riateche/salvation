@@ -84,11 +84,11 @@ macro_rules! impl_widget_common {
             std::any::type_name::<Self>()
         }
 
-        fn common(&self) -> &WidgetCommon {
+        fn common(&self) -> &$crate::WidgetCommon {
             &self.common.common
         }
 
-        fn common_mut(&mut self) -> &mut WidgetCommon {
+        fn common_mut(&mut self) -> &mut $crate::WidgetCommon {
             &mut self.common.common
         }
     };

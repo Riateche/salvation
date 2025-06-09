@@ -27,6 +27,10 @@ pub use {
         event_loop::{run, App},
     },
     tiny_skia,
+    widgets::{
+        EventFilterFn, RawWidgetId, Widget, WidgetAddress, WidgetCommon, WidgetCommonTyped,
+        WidgetCreationContext, WidgetExt, WidgetGeometry, WidgetId, WidgetNotFound,
+    },
     winit::{self, window::WindowAttributes},
 };
 

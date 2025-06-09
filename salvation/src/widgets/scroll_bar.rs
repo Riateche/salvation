@@ -1,18 +1,12 @@
 use {
-    super::{
-        button::Button, Widget, WidgetAddress, WidgetCommon, WidgetCommonTyped, WidgetExt,
-        WidgetGeometry,
-    },
+    super::{button::Button, Widget, WidgetAddress, WidgetCommonTyped, WidgetExt, WidgetGeometry},
     crate::{
         callback::{Callback, Callbacks},
         event::{
             Event, FocusInEvent, FocusOutEvent, KeyboardInputEvent, LayoutEvent, MouseScrollEvent,
         },
         impl_widget_common,
-        layout::{
-            grid::{grid_layout, GridAxisOptions, GridOptions},
-            Alignment, SizeHints,
-        },
+        layout::{grid::grid_layout, SizeHints},
         system::ReportError,
         types::{Axis, PhysicalPixels, Point, PpxSuffix, Rect, Size},
     },
@@ -528,15 +522,7 @@ impl Widget for ScrollBar {
     impl_widget_common!();
 
     fn new(mut common: WidgetCommonTyped<Self>) -> Self {
-        let border_collapse = common.style().0.scroll_bar.border_collapse;
-        let mut grid_options = GridOptions::ZERO;
-        grid_options.x.border_collapse = border_collapse;
-        grid_options.y.border_collapse = border_collapse;
-        // TODO: update when style changes
-        common
-            .set_supports_focus(true)
-            .set_focusable(false)
-            .set_grid_options(Some(grid_options));
+        common.set_supports_focus(true).set_focusable(false);
         // TODO: localized name
 
         common
@@ -557,24 +543,6 @@ impl Widget for ScrollBar {
             .set_column(1)
             .set_row(0)
             .set_axis(axis);
-        pager.common.set_grid_options(Some(GridOptions {
-            x: GridAxisOptions {
-                min_padding: 0.ppx(),
-                min_spacing: 0.ppx(),
-                preferred_padding: 0.ppx(),
-                preferred_spacing: 0.ppx(),
-                border_collapse: 0.ppx(),
-                alignment: Alignment::Start,
-            },
-            y: GridAxisOptions {
-                min_padding: 0.ppx(),
-                min_spacing: 0.ppx(),
-                preferred_padding: 0.ppx(),
-                preferred_spacing: 0.ppx(),
-                border_collapse: 0.ppx(),
-                alignment: Alignment::Start,
-            },
-        }));
         pager
             .common
             .add_child_with_key::<Button>(INDEX_BUTTON_IN_PAGER)
@@ -802,10 +770,12 @@ impl Widget for Pager {
     impl_widget_common!();
 
     fn new(common: WidgetCommonTyped<Self>) -> Self {
-        Self {
+        let mut t = Self {
             common,
             axis: Axis::X,
-        }
+        };
+        t.add_class("no_padding".into());
+        t
     }
 
     fn handle_size_hint_x_request(&mut self) -> Result<SizeHints> {

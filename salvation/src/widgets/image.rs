@@ -1,5 +1,5 @@
 use {
-    super::{Widget, WidgetCommon, WidgetCommonTyped},
+    super::{Widget, WidgetCommonTyped},
     crate::{
         draw::DrawEvent,
         impl_widget_common,
@@ -61,7 +61,7 @@ impl Image {
         let extra_scale = if self.is_prescaled {
             1.0
         } else {
-            self.common.style().0.image.scale
+            self.common.scale()
         };
         self.scale.unwrap_or(1.0) * extra_scale
     }

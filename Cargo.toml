@@ -39,6 +39,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde-value = "0.7.0"
 softbuffer = "0.4.6"
 strict-num = "0.2.0"
+stringcase = "0.4.0"
 strum = { version = "0.27.1", features = ["derive"] }
 syn = { version = "2.0.101", features = ["full"] }
 thiserror = "2.0.12"

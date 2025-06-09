@@ -1,6 +1,9 @@
 use {
     super::Style,
-    crate::types::{LogicalPixels, LpxSuffix},
+    crate::{
+        style::FontStyle,
+        types::{LogicalPixels, LpxSuffix},
+    },
     tiny_skia::Color,
 };
 
@@ -38,6 +41,10 @@ pub fn font_size() -> LogicalPixels {
     13.0.lpx()
 }
 
+pub fn background_color() -> Color {
+    Color::from_rgba8(255, 255, 255, 255)
+}
+
 pub fn text_color() -> Color {
     Color::from_rgba8(0, 0, 0, 255)
 }
@@ -54,3 +61,10 @@ pub const DEFAULT_PREFERRED_WIDTH_EM: f32 = 10.0;
 pub const DEFAULT_MIN_WIDTH_EM: f32 = 2.0;
 
 pub const DEFAULT_LINE_HEIGHT: f32 = 1.2;
+
+pub fn font_style() -> FontStyle {
+    FontStyle {
+        font_size: font_size(),
+        line_height: font_size() * DEFAULT_LINE_HEIGHT,
+    }
+}

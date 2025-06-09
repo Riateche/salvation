@@ -1,29 +1,23 @@
 use {
-    super::{image::Image, Widget, WidgetCommon, WidgetCommonTyped, WidgetExt},
+    super::{image::Image, Widget, WidgetCommonTyped, WidgetExt},
     crate::{
         callback::{Callback, CallbackVec},
-        draw::DrawEvent,
         event::{
             AccessibilityActionEvent, FocusReason, KeyboardInputEvent, MouseInputEvent,
             MouseMoveEvent, StyleChangeEvent,
         },
         impl_widget_common,
-        layout::{
-            grid::{GridAxisOptions, GridOptions},
-            Alignment,
-        },
-        style::{button::ComputedButtonStyle, css::PseudoClass},
+        style::{button::ComputedButtonStyle, css::PseudoClass, get_style},
         system::{add_interval, add_timer, send_window_request, with_system},
         text_editor::Text,
         timer::TimerId,
-        types::{Point, PpxSuffix, Rect},
         window::SetFocusRequest,
     },
     accesskit::{Action, Role},
     anyhow::Result,
     cosmic_text::Attrs,
     salvation_macros::impl_with,
-    std::fmt::Display,
+    std::{fmt::Display, rc::Rc},
     winit::{
         event::MouseButton,
         keyboard::{Key, KeyCode, NamedKey, PhysicalKey},
@@ -40,6 +34,7 @@ pub struct Button {
     auto_repeat_delay_timer: Option<TimerId>,
     auto_repeat_interval: Option<TimerId>,
     common: WidgetCommonTyped<Self>,
+    style: Rc<ComputedButtonStyle>,
 }
 
 #[impl_with]
@@ -159,38 +154,11 @@ impl Button {
     }
 
     fn refresh_style(&mut self) {
-        let style = self.common.common_style.clone();
-        self.text_widget_mut().set_font_metrics(style.font_metrics);
-        self.text_widget_mut().set_text_color(style.text_color);
-
-        let icon = self
-            .common
-            .specific_style::<ComputedButtonStyle>()
-            .icon
-            .clone();
+        self.style = get_style(self.common.style_element(), self.common.scale());
+        let icon = self.style.icon.clone();
         self.image_widget_mut().set_visible(icon.is_some());
         self.image_widget_mut().set_prescaled(true);
         self.image_widget_mut().set_pixmap(icon);
-
-        self.common.set_grid_options(Some(GridOptions {
-            x: GridAxisOptions {
-                min_padding: style.min_padding_with_border.x(),
-                min_spacing: 0.ppx(), // TODO: spacing between icon and image
-                preferred_padding: style.preferred_padding_with_border.x(),
-                preferred_spacing: 0.ppx(),
-                border_collapse: 0.ppx(),
-                // TODO: get from style
-                alignment: Alignment::Middle,
-            },
-            y: GridAxisOptions {
-                min_padding: style.min_padding_with_border.y(),
-                min_spacing: 0.ppx(),
-                preferred_padding: style.preferred_padding_with_border.y(),
-                preferred_spacing: 0.ppx(),
-                border_collapse: 0.ppx(),
-                alignment: Alignment::Middle,
-            },
-        }));
     }
 }
 
@@ -204,8 +172,16 @@ impl Widget for Button {
             .set_column(0)
             .set_row(0)
             .set_visible(false);
-        common.add_child::<Text>().set_column(1).set_row(0);
+        let id = common.id().raw();
+        let element = common.style_element().clone();
+        common
+            .add_child::<Text>()
+            .set_column(1)
+            .set_row(0)
+            .set_host_id(id)
+            .set_host_style_element(element);
         let mut b = Self {
+            style: get_style(common.style_element(), common.scale()),
             auto_repeat: false,
             is_mouse_leave_sensitive: true,
             trigger_on_press: false,
@@ -216,23 +192,9 @@ impl Widget for Button {
             auto_repeat_delay_timer: None,
             auto_repeat_interval: None,
         };
+        // TODO: remove and use declare_children
         b.refresh_style();
         b
-    }
-
-    fn handle_draw(&mut self, event: DrawEvent) -> Result<()> {
-        // TODO: too expensive! refactor styles
-        self.refresh_style();
-        let size = self.common.size_or_err()?;
-        let style = &self.common.common_style;
-
-        event.stroke_and_fill_rounded_rect(
-            Rect::from_pos_size(Point::default(), size),
-            &style.border,
-            style.background.as_ref(),
-        );
-
-        Ok(())
     }
 
     fn handle_mouse_move(&mut self, event: MouseMoveEvent) -> Result<bool> {
@@ -325,6 +287,8 @@ impl Widget for Button {
     }
 
     fn handle_style_change(&mut self, _event: StyleChangeEvent) -> Result<()> {
+        let element = self.common.style_element().clone();
+        self.text_widget_mut().set_host_style_element(element);
         self.refresh_style();
         self.common.size_hint_changed();
         self.common.update();

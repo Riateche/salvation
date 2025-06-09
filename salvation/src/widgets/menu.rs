@@ -1,7 +1,5 @@
 use {
-    super::{
-        label::Label, window::WindowWidget, Widget, WidgetCommon, WidgetCommonTyped, WidgetExt,
-    },
+    super::{label::Label, window::WindowWidget, Widget, WidgetCommonTyped, WidgetExt},
     crate::{impl_widget_common, window::X11WindowType},
     winit::window::WindowLevel,
 };

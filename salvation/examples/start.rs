@@ -7,8 +7,8 @@ use {
         system::add_interval,
         widgets::{
             button::Button, column::Column, label::Label, scroll_area::ScrollArea,
-            text_input::TextInput, window::WindowWidget, Widget, WidgetCommon, WidgetCommonTyped,
-            WidgetExt, WidgetId,
+            text_input::TextInput, window::WindowWidget, Widget, WidgetCommonTyped, WidgetExt,
+            WidgetId,
         },
         App,
     },

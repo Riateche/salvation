@@ -1,15 +1,11 @@
 use {
     super::{
-        scroll_bar::ScrollBar, Widget, WidgetAddress, WidgetCommon, WidgetCommonTyped, WidgetExt,
-        WidgetGeometry,
+        scroll_bar::ScrollBar, Widget, WidgetAddress, WidgetCommonTyped, WidgetExt, WidgetGeometry,
     },
     crate::{
         event::{LayoutEvent, MouseScrollEvent},
         impl_widget_common,
-        layout::{
-            grid::{grid_layout, GridOptions},
-            SizeHints,
-        },
+        layout::{grid::grid_layout, SizeHints},
         types::{Axis, PhysicalPixels, PpxSuffix, Rect},
     },
     anyhow::Result,
@@ -191,7 +187,6 @@ impl Widget for ScrollArea {
             .add_child_with_key::<Viewport>(INDEX_VIEWPORT)
             .set_column(0)
             .set_row(0);
-        common.set_grid_options(Some(GridOptions::ZERO));
         Self { common }
     }
 

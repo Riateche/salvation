@@ -11,7 +11,7 @@ use {
         types::Point,
         widgets::{
             button::Button, image::Image, label::Label, row::Row, window::WindowWidget, Widget,
-            WidgetCommon, WidgetCommonTyped, WidgetExt, WidgetId,
+            WidgetCommonTyped, WidgetExt, WidgetId,
         },
     },
     std::{
@@ -143,7 +143,7 @@ impl Widget for ReviewWidget {
             .add_child::<Row>()
             .set_column(2)
             .set_row(2)
-            .set_no_padding(true);
+            .add_class("no_padding".into());
         row.common_mut()
             .add_child::<Button>()
             .set_column(0)
@@ -207,7 +207,7 @@ impl Widget for ReviewWidget {
             .add_child::<Row>()
             .set_column(2)
             .set_row(4)
-            .set_no_padding(true);
+            .add_class("no_padding".into());
 
         row.common_mut()
             .add_child::<Button>()
@@ -241,7 +241,7 @@ impl Widget for ReviewWidget {
             .add_child::<Row>()
             .set_column(2)
             .set_row(5)
-            .set_no_padding(true);
+            .add_class("no_padding".into());
         let mut mode_button_ids = HashMap::new();
         for (column, mode) in Mode::iter().enumerate() {
             // TODO: radio buttons
@@ -267,7 +267,7 @@ impl Widget for ReviewWidget {
             .add_child::<Row>()
             .set_column(2)
             .set_row(6)
-            .set_no_padding(true);
+            .add_class("no_padding".into());
 
         row.common_mut()
             .add_child::<Button>()
@@ -325,7 +325,7 @@ impl Widget for ReviewWidget {
             .add_child::<Row>()
             .set_column(2)
             .set_row(8)
-            .set_no_padding(true);
+            .add_class("no_padding".into());
 
         approve_and_skip
             .common_mut()

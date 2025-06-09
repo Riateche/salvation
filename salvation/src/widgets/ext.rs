@@ -4,13 +4,13 @@ use {
         callback::{widget_callback, Callback},
         event::{Event, LayoutEvent, ScrollToRectRequest, StyleChangeEvent},
         layout::{SizeHints, FALLBACK_SIZE_HINTS},
-        style::{computed::ComputedStyle, css::PseudoClass, Style},
+        style::css::PseudoClass,
         system::{with_system, ReportError},
         types::PhysicalPixels,
     },
     anyhow::Result,
     log::{error, warn},
-    std::{borrow::Cow, rc::Rc},
+    std::borrow::Cow,
 };
 
 fn accept_mouse_move_or_enter_event(widget: &mut (impl Widget + ?Sized), is_enter: bool) {
@@ -45,12 +45,6 @@ pub trait WidgetExt: Widget {
         Self: Sized,
     {
         WidgetId::new(self.common().id())
-    }
-
-    // TODO: use classes instead?
-    fn set_no_padding(&mut self, no_padding: bool) -> &mut Self {
-        self.common_mut().set_no_padding(no_padding);
-        self
     }
 
     fn set_visible(&mut self, value: bool) -> &mut Self {
@@ -311,18 +305,6 @@ pub trait WidgetExt: Widget {
         }
     }
 
-    fn set_style(&mut self, style: Option<Rc<Style>>) -> Result<()> {
-        let scale = self.common().parent_style.0.scale;
-        let style = if let Some(style) = style {
-            Some(ComputedStyle::new(style, scale)?)
-        } else {
-            None
-        };
-        self.common_mut().self_style = style;
-        self.dispatch(StyleChangeEvent {}.into());
-        Ok(())
-    }
-
     fn add_class(&mut self, class: Cow<'static, str>) -> &mut Self {
         if self.common().style_element.has_class(&class) {
             return self;
@@ -400,6 +382,15 @@ pub trait WidgetExt: Widget {
         self.set_pseudo_class(PseudoClass::Enabled, new_enabled);
         self.set_pseudo_class(PseudoClass::Disabled, !new_enabled);
         self.common_mut().parent_enabled_changed(enabled);
+        self
+    }
+
+    fn set_scale(&mut self, scale: Option<f32>) -> &mut Self {
+        if self.common().self_scale == scale {
+            return self;
+        }
+        self.common_mut().set_scale(scale);
+        self.dispatch(StyleChangeEvent {}.into());
         self
     }
 

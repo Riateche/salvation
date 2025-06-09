@@ -1,5 +1,5 @@
 use {
-    super::{Widget, WidgetCommon, WidgetCommonTyped},
+    super::{Widget, WidgetCommonTyped},
     crate::impl_widget_common,
 };
 

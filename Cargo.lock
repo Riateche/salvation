@@ -3836,6 +3836,7 @@ dependencies = [
  "serde-value",
  "softbuffer",
  "strict-num 0.2.0",
+ "stringcase",
  "thiserror 2.0.12",
  "tiny-skia",
  "unicode-segmentation",
@@ -4206,6 +4207,12 @@ checksum = "290fd5eab900654f4c270bc1cfaeb0f2c17b6851fa448fc22e1778dec105ac68"
 dependencies = [
  "float-cmp",
 ]
+
+[[package]]
+name = "stringcase"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72abeda133c49d7bddece6c154728f83eec8172380c80ab7096da9487e20d27c"
 
 [[package]]
 name = "strsim"

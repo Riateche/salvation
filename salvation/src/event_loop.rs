@@ -1,7 +1,7 @@
 use {
     crate::{
         callback::{CallbackId, InvokeCallbackEvent},
-        style::{computed::ComputedStyle, defaults::default_style},
+        style::defaults::default_style,
         system::{
             address, take_pending_children_updates, with_system, ReportError,
             SharedSystemDataInner, SystemConfig, SYSTEM,
@@ -23,7 +23,6 @@ use {
         collections::HashMap,
         fmt::Debug,
         path::PathBuf,
-        rc::Rc,
         time::{Duration, Instant},
     },
     winit::{
@@ -309,7 +308,7 @@ impl ApplicationHandler<UserEvent> for Handler {
                     swash_cache: SwashCache::new(),
                     event_loop_proxy: self.event_loop_proxy.take().expect("only happens once"),
                     // TODO: how to detect monitor scale change?
-                    default_style: ComputedStyle::new(Rc::new(default_style()), scale).unwrap(),
+                    style: default_style(),
                     timers: Timers::new(),
                     clipboard: Clipboard::new().expect("failed to initialize clipboard"),
                     had_any_windows: false,
@@ -329,7 +328,8 @@ impl ApplicationHandler<UserEvent> for Handler {
                     parent_id: None,
                     address: WidgetAddress::root(id),
                     window: None,
-                    parent_style: with_system(|s| s.default_style.clone()),
+                    // Scale doesn't matter for root widget. Window will set scale for its content.
+                    parent_scale: scale,
                     is_parent_enabled: true,
                     is_window_root: false,
                 };

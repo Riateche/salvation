@@ -3,7 +3,7 @@ use {
         callback::{Callback, CallbackId, WidgetCallbackData},
         event_loop::UserEvent,
         shortcut::Shortcut,
-        style::computed::ComputedStyle,
+        style::Style,
         timer::{Timer, TimerId, Timers},
         widgets::{RawWidgetId, WidgetAddress},
         window::{WindowId, WindowRequest},
@@ -38,7 +38,7 @@ pub struct SharedSystemDataInner {
     pub font_system: FontSystem,
     pub swash_cache: SwashCache,
 
-    pub default_style: ComputedStyle,
+    pub style: Style,
     pub(crate) event_loop_proxy: EventLoopProxy<UserEvent>,
     pub timers: Timers,
     pub clipboard: Clipboard,

@@ -1,18 +1,24 @@
 use {
     super::{
         css::{
-            convert_background, convert_background_color, convert_border, convert_font,
-            convert_main_color, convert_padding, convert_zoom, is_root, Element, PseudoClass,
+            convert_background, convert_border, convert_font, convert_main_color, convert_padding,
+            convert_zoom, is_root, Element, PseudoClass,
         },
-        grid, image, scroll_bar, text_input, FontStyle, RelativeOffset, Style,
+        RelativeOffset, Style,
     },
     crate::{
-        style::defaults,
-        types::{PhysicalPixels, Point},
+        layout::{
+            grid::{GridAxisOptions, GridOptions},
+            Alignment,
+        },
+        style::{
+            css::{convert_spacing, get_border_collapse, is_root_min},
+            defaults,
+        },
+        types::{PhysicalPixels, Point, PpxSuffix},
     },
-    anyhow::Result,
     log::warn,
-    std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc},
+    std::any::Any,
     tiny_skia::{Color, GradientStop, SpreadMode},
 };
 
@@ -34,80 +40,79 @@ impl Default for ComputedBorderStyle {
 }
 
 #[derive(Debug)]
-pub struct ComputedStyleInner {
-    pub style: Rc<Style>,
-    pub scale: f32,
-
-    pub background: Color,
-    pub grid: grid::ComputedStyle,
-    pub font_style: FontStyle,
-    pub font_metrics: cosmic_text::Metrics,
-    pub text_input: text_input::ComputedStyle,
-    pub scroll_bar: scroll_bar::ComputedStyle,
-    pub image: image::ComputedStyle,
-
-    common_cache: RefCell<HashMap<Element, Rc<CommonComputedStyle>>>,
-    specific_cache: RefCell<HashMap<Element, Box<dyn Any>>>,
-}
-
-#[derive(Clone)]
-pub struct ComputedStyle(pub Rc<ComputedStyleInner>);
-
-impl std::fmt::Debug for ComputedStyle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("ComputedStyle").finish_non_exhaustive()
-    }
-}
-
-#[derive(Debug)]
 pub struct CommonComputedStyle {
+    pub min_padding: Point,
+    pub min_spacing: Point,
+    pub preferred_padding: Point,
+    pub preferred_spacing: Point,
     pub min_padding_with_border: Point,
     pub preferred_padding_with_border: Point,
     pub border: ComputedBorderStyle,
     pub background: Option<ComputedBackground>,
     pub text_color: tiny_skia::Color,
     pub font_metrics: cosmic_text::Metrics,
+    pub border_collapse: PhysicalPixels,
+    pub grid: GridOptions,
 }
 
-impl Default for CommonComputedStyle {
-    fn default() -> Self {
-        Self {
-            min_padding_with_border: Default::default(),
-            preferred_padding_with_border: Default::default(),
-            border: Default::default(),
-            background: Default::default(),
-            text_color: defaults::text_color(),
-            font_metrics: Default::default(),
-        }
-    }
-}
-
-impl CommonComputedStyle {
-    pub fn new(style: &ComputedStyle, element: &Element) -> Self {
-        let properties = style.0.style.find_rules(|s| element.matches(s));
+impl ComputedElementStyle for CommonComputedStyle {
+    fn new(style: &Style, element: &Element, scale: f32) -> Self {
+        let rules = style.find_rules(|s| element.matches(s));
+        let mut rules_with_root = style.find_rules(is_root);
+        rules_with_root.extend(rules.clone());
         let element_min = element
             .clone()
             .with_pseudo_class(PseudoClass::Custom("min".into()));
-        let min_properties = style.0.style.find_rules(|s| element_min.matches(s));
-        let properties_with_root = style
-            .0
-            .style
-            .find_rules(|selector| is_root(selector) || element.matches(selector));
+        let mut min_rules_with_root = style.find_rules(is_root_min);
+        min_rules_with_root.extend(style.find_rules(|s| element_min.matches(s)));
+        let properties_with_root =
+            style.find_rules(|selector| is_root(selector) || element.matches(selector));
 
-        let scale = style.0.scale * convert_zoom(&properties);
-        let font = convert_font(&properties, Some(&style.0.font_style));
-        let preferred_padding = convert_padding(&properties, scale, font.font_size);
+        let scale = scale * convert_zoom(&rules);
+        let font = convert_font(&rules, Some(&style.root_font_style()));
+        let min_padding = convert_padding(&min_rules_with_root, scale, font.font_size);
+        let preferred_padding = convert_padding(&rules_with_root, scale, font.font_size);
 
-        let min_padding = convert_padding(&min_properties, scale, font.font_size);
+        let min_spacing = convert_spacing(&min_rules_with_root, scale, font.font_size);
+        let preferred_spacing = convert_spacing(&rules_with_root, scale, font.font_size);
 
         let text_color = convert_main_color(&properties_with_root).unwrap_or_else(|| {
             warn!("text color is not specified");
             defaults::text_color()
         });
-        let border = convert_border(&properties, scale, text_color);
-        let background = convert_background(&properties);
+        let border = convert_border(&rules_with_root, scale, text_color);
+        let background = convert_background(&rules);
+        let border_collapse = if get_border_collapse(&rules_with_root) {
+            border.width
+        } else {
+            0.ppx()
+        };
+
+        let grid = GridOptions {
+            x: GridAxisOptions {
+                min_padding: min_padding.x(),
+                min_spacing: min_spacing.x(),
+                preferred_padding: preferred_padding.x(),
+                preferred_spacing: preferred_spacing.x(),
+                border_collapse,
+                // TODO: alignment from css
+                alignment: Alignment::Start,
+            },
+            y: GridAxisOptions {
+                min_padding: min_padding.y(),
+                min_spacing: min_spacing.y(),
+                preferred_padding: preferred_padding.y(),
+                preferred_spacing: preferred_spacing.y(),
+                border_collapse,
+                alignment: Alignment::Start,
+            },
+        };
 
         Self {
+            preferred_padding,
+            min_padding,
+            preferred_spacing,
+            min_spacing,
             min_padding_with_border: min_padding + Point::new(border.width, border.width),
             preferred_padding_with_border: preferred_padding
                 + Point::new(border.width, border.width),
@@ -115,62 +120,14 @@ impl CommonComputedStyle {
             border,
             background,
             text_color,
+            border_collapse,
+            grid,
         }
-    }
-}
-
-impl ComputedStyle {
-    pub fn new(style: Rc<Style>, scale: f32) -> Result<Self> {
-        let root_properties = style.find_rules(is_root);
-        let background = convert_background_color(&root_properties)?;
-        let font_style = convert_font(&root_properties, None);
-
-        Ok(Self(Rc::new(ComputedStyleInner {
-            scale,
-            background: background.unwrap_or_else(|| {
-                warn!("missing root background color");
-                Color::WHITE
-            }),
-            font_metrics: font_style.to_metrics(scale),
-            grid: grid::ComputedStyle::new(&style, scale, &font_style)?,
-            text_input: text_input::ComputedStyle::new(&style, scale, &font_style)?,
-            scroll_bar: scroll_bar::ComputedStyle::new(&style, scale)?,
-            image: image::ComputedStyle::new(&style, scale)?,
-            style,
-            common_cache: RefCell::new(HashMap::new()),
-            specific_cache: RefCell::new(HashMap::new()),
-            font_style,
-        })))
-    }
-
-    pub fn get<T: ComputedElementStyle>(&self, element: &Element) -> Rc<T> {
-        let mut cache = self.0.specific_cache.borrow_mut();
-        if let Some(data) = cache.get(element) {
-            return data
-                .downcast_ref::<Rc<T>>()
-                .expect("specific style type mismatch")
-                .clone();
-        }
-        let specific = Rc::new(T::new(self, element));
-        let specific_clone = specific.clone();
-        cache.insert(element.clone(), Box::new(specific));
-        specific_clone
-    }
-
-    pub fn get_common(&self, element: &Element) -> Rc<CommonComputedStyle> {
-        let mut cache = self.0.common_cache.borrow_mut();
-        if let Some(data) = cache.get(element) {
-            return data.clone();
-        }
-        let common = Rc::new(CommonComputedStyle::new(self, element));
-        let common_clone = common.clone();
-        cache.insert(element.clone(), common);
-        common_clone
     }
 }
 
 pub trait ComputedElementStyle: Any + Sized {
-    fn new(style: &ComputedStyle, element: &Element) -> Self;
+    fn new(style: &Style, element: &Element, scale: f32) -> Self;
 }
 
 #[derive(Debug, Clone)]

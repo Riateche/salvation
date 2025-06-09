@@ -4,7 +4,7 @@ use {
         shortcut::{KeyCombinations, Shortcut, ShortcutScope},
         types::Axis,
         widgets::{
-            label::Label, scroll_bar::ScrollBar, window::WindowWidget, Widget, WidgetCommon,
+            label::Label, scroll_bar::ScrollBar, window::WindowWidget, Widget,
             WidgetCommonTyped, WidgetExt,
         },
     },

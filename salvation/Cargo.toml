@@ -35,6 +35,7 @@ serde = { workspace = true }
 serde-value = { workspace = true }
 softbuffer = { workspace = true }
 strict-num = { workspace = true }
+stringcase = { workspace = true }
 thiserror = { workspace = true }
 tiny-skia = { workspace = true }
 unicode-segmentation = { workspace = true }

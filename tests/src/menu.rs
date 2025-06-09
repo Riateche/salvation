@@ -2,7 +2,7 @@ use {
     salvation::{
         impl_widget_common,
         widgets::{
-            button::Button, menu::Menu, window::WindowWidget, Widget, WidgetCommon,
+            button::Button, menu::Menu, window::WindowWidget, Widget,
             WidgetCommonTyped, WidgetExt,
         },
     },

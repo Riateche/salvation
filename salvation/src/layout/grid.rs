@@ -270,7 +270,7 @@ pub fn grid_layout<W: Widget + ?Sized>(widget: &mut W, changed_size_hints: &[Wid
         }
         return;
     };
-    let options = widget.common().grid_options();
+    let options = widget.common().common_style.grid.clone();
     let x_layout = x_layout(
         &mut widget.common_mut().children,
         &options.x,

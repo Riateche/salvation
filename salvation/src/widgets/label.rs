@@ -1,5 +1,5 @@
 use {
-    super::{Widget, WidgetCommon, WidgetCommonTyped, WidgetExt},
+    super::{Widget, WidgetCommonTyped, WidgetExt},
     crate::{impl_widget_common, text_editor::Text},
     cosmic_text::Attrs,
     std::fmt::Display,
@@ -31,8 +31,14 @@ impl Widget for Label {
     impl_widget_common!();
 
     fn new(mut common: WidgetCommonTyped<Self>) -> Self {
-        common.add_child::<Text>().set_column(0).set_row(0);
-        common.set_no_padding(true);
+        let id = common.id().raw();
+        let element = common.style_element().clone();
+        common
+            .add_child::<Text>()
+            .set_column(0)
+            .set_row(0)
+            .set_host_id(id)
+            .set_host_style_element(element);
         Self { common }
     }
 }

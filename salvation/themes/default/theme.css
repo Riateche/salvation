@@ -6,18 +6,20 @@
     line-height: 18px;
     color: var(--foreground);
     background: var(--background);
+
+    padding: 11px;
+    gap: 7px;
+}
+.no_padding {
+    padding: 0;
+}
+:root:min {
+    padding: 1px;
+    gap: 1px;
 }
 ::selection {
     color: #ffffff;
     background: #308cc6;
-}
-grid {
-    padding: 11px;
-    gap: 7px;
-}
-grid:min {
-    padding: 1px;
-    gap: 1px;
 }
 text-input {
     border: 1px solid #c8c8c8;
@@ -33,104 +35,115 @@ text-input:focus {
     border-color: #6464ff;
 }
 
-Button {
+button {
     border: 1px solid #c4c4c4;
     border-radius: 2px;
     padding: 4px;
+    gap: 4px;
     background: linear-gradient(#fefefe 0%, #eeeeee 100%);
 }
-Button:min {
+button:min {
     padding: 0px 1px;
 }
-Button:disabled {
+button:disabled {
     color: #bfbfbf;
 }
-Button:hover {
+button:hover {
     background: linear-gradient(#ffffff 0%, #f9f9f9 100%);
 }
-Button:active {
+button:active {
     background: #dbdbdb;
 }
-Button:focus {
+button:focus {
     border-color: #26709e;
 }
-Button.scroll_left,
-Button.scroll_right,
-Button.scroll_up,
-Button.scroll_down,
-Button.scroll_grip_x,
-Button.scroll_grip_y {
+button.scroll_left,
+button.scroll_right,
+button.scroll_up,
+button.scroll_down,
+button.scroll_grip_x,
+button.scroll_grip_y {
     border-radius: 0;
 }
-Button.scroll_left,
-Button.scroll_right {
+button.scroll_left,
+button.scroll_right {
     padding: 2px 4px;
 }
-Button.scroll_up,
-Button.scroll_down {
+button.scroll_up,
+button.scroll_down {
     padding: 4px 2px;
 }
-Button.scroll_grip_x,
-Button.scroll_grip_y {
+button.scroll_grip_x,
+button.scroll_grip_y {
     padding: 2px 2px;
 }
+scroll-area {
+    padding: 0;
+    gap: 0;
+}
 scroll-bar {
+    padding: 0;
+    gap: 0;
     border-collapse: collapse;
 }
 
-Button.scroll_left {
+button.scroll_left {
     content: url('scroll_left.svg');
 }
-Button.scroll_right {
+button.scroll_right {
     content: url('scroll_right.svg');
 }
-Button.scroll_up {
+button.scroll_up {
     content: url('scroll_up.svg');
 }
-Button.scroll_down {
+button.scroll_down {
     content: url('scroll_down.svg');
 }
-Button.scroll_grip_x {
+button.scroll_grip_x {
     content: url('scroll_grip_x.svg');
 }
-Button.scroll_grip_y {
+button.scroll_grip_y {
     content: url('scroll_grip_y.svg');
 }
-Button.scroll_pager {
+button.scroll_pager {
     border: 1px solid #c4c4c4;
     border-radius: 0;
     background: #e6e6e6;
 }
-Button.scroll_pager:hover {
+button.scroll_pager:hover {
     background: #f0f0f0;
 }
-Button.scroll_pager:active {
+button.scroll_pager:active {
     background: #c2c2c2;
 }
 
-Button.scroll_left:disabled {
+button.scroll_left:disabled {
     content: url('scroll_left_disabled.svg');
 }
-Button.scroll_right:disabled {
+button.scroll_right:disabled {
     content: url('scroll_right_disabled.svg');
 }
-Button.scroll_up:disabled {
+button.scroll_up:disabled {
     content: url('scroll_up_disabled.svg');
 }
-Button.scroll_down:disabled {
+button.scroll_down:disabled {
     content: url('scroll_down_disabled.svg');
 }
-Button.scroll_grip_x:disabled {
+button.scroll_grip_x:disabled {
     content: url('scroll_grip_x_disabled.svg');
 }
-Button.scroll_grip_y:disabled {
+button.scroll_grip_y:disabled {
     content: url('scroll_grip_y_disabled.svg');
 }
 
-Button.scroll_grip_x:active,
-Button.scroll_grip_y:active {
+button.scroll_grip_x:active,
+button.scroll_grip_y:active {
     background: #c8c8c8;
 }
-Button.scroll_grip_x.scroll_bar_focused, Button.scroll_grip_y.scroll_bar_focused {
+button.scroll_grip_x.scroll_bar_focused, button.scroll_grip_y.scroll_bar_focused {
     border-color: #26709e;
+}
+
+label {
+    padding: 0;
 }

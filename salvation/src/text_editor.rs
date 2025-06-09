@@ -4,11 +4,18 @@ use {
         draw::DrawEvent,
         event::{
             AccessibilityActionEvent, FocusReason, InputMethodEvent, KeyboardInputEvent,
-            MouseInputEvent, MouseMoveEvent, WindowFocusChangeEvent,
+            MouseInputEvent, MouseMoveEvent, StyleChangeEvent, WindowFocusChangeEvent,
         },
         impl_widget_common,
         layout::SizeHints,
         shortcut::standard_shortcuts,
+        style::{
+            computed::ComputedElementStyle,
+            css::{
+                convert_background_color, convert_font, convert_main_color, is_selection, Element,
+            },
+            defaults, get_style, Style,
+        },
         system::{add_interval, report_error, send_window_request, with_system, ReportError},
         text::{
             action::Action,
@@ -18,7 +25,7 @@ use {
         },
         timer::TimerId,
         types::{PhysicalPixels, Point, PpxSuffix, Rect, Size},
-        widgets::{RawWidgetId, Widget, WidgetCommon, WidgetCommonTyped, WidgetExt},
+        widgets::{RawWidgetId, Widget, WidgetCommonTyped, WidgetExt},
         window::{ScrollToRectRequest, SetFocusRequest},
     },
     accesskit::{ActionData, NodeId, Role, TextDirection, TextPosition, TextSelection},
@@ -29,12 +36,14 @@ use {
     },
     line_straddler::{GlyphStyle, LineGenerator, LineType},
     log::warn,
+    once_cell::unsync,
     range_ext::intersect::Intersect,
     salvation_macros::impl_with,
     std::{
         cmp::{max, min},
         fmt::Display,
         ops::Range,
+        rc::Rc,
         time::Duration,
     },
     strict_num::FiniteF32,
@@ -47,19 +56,67 @@ use {
     },
 };
 
-pub struct Text {
-    common: WidgetCommonTyped<Self>,
-    editor: Editor<'static>,
-    pixmap: Option<Pixmap>,
+struct TextStyle {
+    font_metrics: cosmic_text::Metrics,
     text_color: Color,
     selected_text_color: Color,
     selected_text_background: Color,
+}
+
+impl TextStyle {
+    fn default(scale: f32) -> Rc<Self> {
+        thread_local! {
+            static LAZY: unsync::OnceCell<Rc<TextStyle>> = const { unsync::OnceCell::new() };
+        }
+        LAZY.with(|lazy| {
+            Rc::clone(lazy.get_or_init(|| {
+                Rc::new(TextStyle {
+                    font_metrics: defaults::font_style().to_metrics(scale),
+                    text_color: defaults::text_color(),
+                    selected_text_color: defaults::selected_text_color(),
+                    selected_text_background: defaults::selected_text_background(),
+                })
+            }))
+        })
+    }
+}
+
+impl ComputedElementStyle for TextStyle {
+    fn new(style: &Style, element: &Element, scale: f32) -> Self {
+        let rules = style.find_rules_for_element(element);
+
+        // TODO: different selection styles depending on `element`
+        let selection_properties = style.find_rules(is_selection);
+        let selected_text_color = convert_main_color(&selection_properties).unwrap_or_else(|| {
+            warn!("selected text color is unspecified");
+            defaults::selected_text_color()
+        });
+        let selected_text_background = convert_background_color(&selection_properties)
+            .unwrap_or_else(|| {
+                warn!("selected text background is unspecified");
+                defaults::selected_text_background()
+            });
+        Self {
+            font_metrics: convert_font(&rules, Some(&style.root_font_style())).to_metrics(scale),
+            text_color: convert_main_color(&rules).unwrap_or_else(|| style.root_color()),
+            selected_text_color,
+            selected_text_background,
+        }
+    }
+}
+
+pub struct Text {
+    common: WidgetCommonTyped<Self>,
+    style: Rc<TextStyle>,
+    editor: Editor<'static>,
+    pixmap: Option<Pixmap>,
     size: Size,
     is_multiline: bool,
     is_editable: bool,
     is_cursor_hidden: bool,
     is_host_focused: bool,
     host_id: Option<RawWidgetId>,
+    host_element: Element,
     forbid_mouse_interaction: bool,
     blink_timer: Option<TimerId>,
     selected_text: String,
@@ -115,6 +172,12 @@ impl Text {
 
     pub fn set_host_id(&mut self, id: RawWidgetId) -> &mut Self {
         self.host_id = Some(id);
+        self
+    }
+
+    pub fn set_host_style_element(&mut self, element: Element) -> &mut Self {
+        self.host_element = element;
+        self.style = get_style(&self.host_element, self.common.scale());
         self
     }
 
@@ -638,30 +701,6 @@ impl Text {
         self.size.y()
     }
 
-    pub fn set_text_color(&mut self, color: Color) {
-        if self.text_color != color {
-            self.text_color = color;
-            self.editor.set_redraw(true);
-            self.common.update();
-        }
-    }
-
-    pub fn set_selected_text_color(&mut self, color: Color) {
-        if self.selected_text_color != color {
-            self.selected_text_color = color;
-            self.editor.set_redraw(true);
-            self.common.update();
-        }
-    }
-
-    pub fn set_selected_text_background(&mut self, color: Color) {
-        if self.selected_text_background != color {
-            self.selected_text_background = color;
-            self.editor.set_redraw(true);
-            self.common.update();
-        }
-    }
-
     pub fn shape_as_needed(&mut self) {
         with_system(|system| self.editor.shape_as_needed(&mut system.font_system, false));
         self.request_scroll();
@@ -689,10 +728,10 @@ impl Text {
                     &mut system.font_system,
                     &mut system.swash_cache,
                     &EditorDrawStyle {
-                        text_color: convert_color(self.text_color),
-                        cursor_color: convert_color(self.text_color), // TODO: cursor color,
-                        selection_color: convert_color(self.selected_text_background),
-                        selected_text_color: convert_color(self.selected_text_color),
+                        text_color: convert_color(self.style.text_color),
+                        cursor_color: convert_color(self.style.text_color), // TODO: cursor color,
+                        selection_color: convert_color(self.style.selected_text_background),
+                        selected_text_color: convert_color(self.style.selected_text_color),
                     },
                     |x, y, w, h, c| {
                         let color = Color::from_rgba8(c.r(), c.g(), c.b(), c.a());
@@ -724,7 +763,9 @@ impl Text {
                     let line_y = (line_y + stroke_width / 2.0).round() - stroke_width / 2.0;
                     for glyph in run.glyphs {
                         if Metadata(glyph.metadata).is_preedit() {
-                            let color = glyph.color_opt.unwrap_or(convert_color(self.text_color));
+                            let color = glyph
+                                .color_opt
+                                .unwrap_or(convert_color(self.style.text_color));
                             let glyph = line_straddler::Glyph {
                                 line_y,
                                 font_size: glyph.font_size,
@@ -957,15 +998,16 @@ impl Widget for Text {
     impl_widget_common!();
 
     fn new(common: WidgetCommonTyped<Self>) -> Self {
-        let mut t = with_system(|system| Self {
-            editor: Editor::new(Buffer::new(
-                &mut system.font_system,
-                system.default_style.0.font_metrics,
-            )),
+        // Host element is not known at this time.
+        let style = TextStyle::default(common.scale());
+        let editor = with_system(|system| {
+            Editor::new(Buffer::new(&mut system.font_system, style.font_metrics))
+        });
+        let mut t = Self {
+            editor,
             pixmap: None,
-            text_color: Color::BLACK,
-            selected_text_color: Color::TRANSPARENT,
-            selected_text_background: Color::TRANSPARENT,
+            host_element: Element::new("_unknown_".into()),
+            style,
             size: Size::default(),
             is_multiline: true,
             is_editable: false,
@@ -977,7 +1019,7 @@ impl Widget for Text {
             selected_text: String::new(),
             accessible_line_id: accessible::new_accessible_node_id(),
             common,
-        });
+        };
         if let Some(window) = &t.common.window {
             window.accessible_mount(Some(t.common.id().into()), t.accessible_line_id, 0.into());
         }
@@ -1162,6 +1204,11 @@ impl Widget for Text {
             preferred: self.size_y(),
             is_fixed: true,
         })
+    }
+
+    fn handle_style_change(&mut self, _event: StyleChangeEvent) -> Result<()> {
+        self.style = get_style(&self.host_element, self.common.scale());
+        Ok(())
     }
 }
 
